@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=OmaAmp (Winamp)
+GenericName=Audio Player
+Comment=Classic Winamp-style modular MP3 & audio player with themes, EQ, and visualizer
+Exec=/home/alex/.local/bin/omaamp %F
+Icon=/home/alex/Projects/OmaAmp/icon.png
+Terminal=false
+Type=Application
+Categories=AudioVideo;Audio;Player;Qt;
+MimeType=audio/mpeg;audio/x-mpegurl;audio/ogg;audio/x-wav;audio/flac;audio/mp4;audio/aac;
+StartupNotify=true

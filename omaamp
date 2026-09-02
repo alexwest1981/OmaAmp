@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ ! -f "$SCRIPT_DIR/main.py" ]; then
+    SCRIPT_DIR="/home/alex/Projects/OmaAmp"
+fi
+
+exec uv run --directory "$SCRIPT_DIR" python "$SCRIPT_DIR/main.py" "$@"

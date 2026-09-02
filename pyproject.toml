@@ -1,0 +1,15 @@
+[project]
+name = "omaamp"
+version = "1.0.0"
+description = "A classic Winamp-style modular MP3 & audio player with themes, 10-band EQ, spectrum analyzer, and playlist manager."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "PyQt6>=6.6.0",
+    "pygame>=2.5.0",
+    "mutagen>=1.47.0",
+    "numpy>=1.26.0",
+]
+
+[project.scripts]
+omaamp = "main:main"
