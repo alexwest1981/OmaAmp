@@ -12,6 +12,7 @@ dependencies = [
     "miniaudio>=1.71",
     "soundfile>=0.14.0",
     "scipy>=1.15.3",
+    "sounddevice>=0.5.6",
 ]
 
 [project.scripts]

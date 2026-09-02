@@ -41,6 +41,14 @@ class MainWindow(QWidget):
         self.audio.track_changed.connect(self._on_track_changed)
         self.audio.position_changed.connect(self._on_position_changed)
         self.audio.playback_state_changed.connect(self._on_playback_state_changed)
+        self.eq_widget.eq_changed.connect(self._on_eq_changed)
+        self.slider_pan.valueChanged.connect(self._on_pan_changed)
+
+        # Sync initial EQ settings to DSP engine
+        self._on_eq_changed(
+            [s.value() for s in self.eq_widget.sliders],
+            self.eq_widget.slider_preamp.value()
+        )
 
         # Restore visibility
         show_eq = self.config.get("show_eq", True)
@@ -274,6 +282,13 @@ class MainWindow(QWidget):
         self.audio.set_volume(val)
         self.vis.set_volume(val)
         self.config.set("volume", val)
+
+    def _on_pan_changed(self, val):
+        self.audio.set_balance(val)
+
+    def _on_eq_changed(self, bands, preamp):
+        enabled = self.eq_widget.eq_enabled
+        self.audio.set_eq_params(bands, preamp, enabled)
 
     def _on_seek_moved(self, val):
         if self.audio.current_track and self.audio.current_track.duration > 0:

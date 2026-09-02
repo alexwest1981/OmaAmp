@@ -1,10 +1,15 @@
 import os
 import json
 import random
-import pygame
+import threading
+import numpy as np
+import sounddevice as sd
+import miniaudio
+import soundfile as sf
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer
 import mutagen
 from core.audio_analyzer import AudioAnalyzer
+from core.dsp_equalizer import DspEqualizer
 
 PLAYLIST_FILE = os.path.expanduser("~/.config/omaamp/playlist.json")
 
@@ -73,42 +78,46 @@ class AudioEngine(QObject):
 
     def __init__(self):
         super().__init__()
-        try:
-            pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=1024)
-        except Exception as e:
-            print(f"Error initializing pygame.mixer: {e}")
-
         self.playlist = []
         self.current_index = -1
         self.is_playing = False
         self.is_paused = False
         self.volume = 80
-        self.balance = 0
+        self.balance = 0.0  # -1.0 (L) to +1.0 (R)
         self.shuffle = False
         self.repeat = True
-        self.current_position = 0.0
-        self.seek_offset = 0.0
+        
+        # Audio Buffer & Stream State
+        self.raw_stereo_data = None
+        self.sample_rate = 44100
+        self.playback_sample_index = 0
+        self.stream = None
+        self._stream_lock = threading.Lock()
 
-        # Position poll timer
-        self.pos_timer = QTimer(self)
-        self.pos_timer.setInterval(200)
-        self.pos_timer.timeout.connect(self._update_position)
-
-        # Real-time audio analyzer for FFT & waveform
+        # DSP Equalizer & Real-time FFT Analyzer
+        self.dsp_eq = DspEqualizer(self.sample_rate)
         self.analyzer = AudioAnalyzer(num_bars=24)
+
+        # UI Poll Timer
+        self.pos_timer = QTimer(self)
+        self.pos_timer.setInterval(100)
+        self.pos_timer.timeout.connect(self._poll_position)
 
         # Restore saved playlist state on startup
         self.load_playlist_state()
         if self.current_track:
-            self.analyzer.load_track(self.current_track.filepath)
+            self._load_track_samples(self.current_track.filepath)
 
     def set_volume(self, val):
         self.volume = max(0, min(100, val))
-        try:
-            pygame.mixer.music.set_volume(self.volume / 100.0)
-        except Exception:
-            pass
         self.volume_changed.emit(self.volume)
+
+    def set_balance(self, val):
+        # slider -50..+50 to -1.0..+1.0
+        self.balance = float(val) / 50.0
+
+    def set_eq_params(self, bands, preamp, enabled=True):
+        self.dsp_eq.set_params(bands, preamp, enabled)
 
     def add_files(self, filepaths):
         added = False
@@ -135,35 +144,131 @@ class AudioEngine(QObject):
                 self.current_index = 0
                 if self.current_track:
                     self.track_changed.emit(self.current_track)
-                    self.analyzer.load_track(self.current_track.filepath)
+                    self._load_track_samples(self.current_track.filepath)
             self.save_playlist_state()
+
+    def _load_track_samples(self, filepath):
+        if not filepath or not os.path.exists(filepath):
+            return
+        try:
+            ext = os.path.splitext(filepath)[1].lower()
+            if ext in {".wav", ".flac", ".ogg"}:
+                try:
+                    data, sr = sf.read(filepath, dtype='float32')
+                    if data.ndim == 1:
+                        stereo = np.column_stack([data, data])
+                    else:
+                        stereo = data
+                    with self._stream_lock:
+                        self.raw_stereo_data = stereo
+                        self.sample_rate = sr
+                        self.dsp_eq.set_sample_rate(sr)
+                    self.analyzer.load_track(filepath)
+                    return
+                except Exception:
+                    pass
+
+            decoded = miniaudio.decode_file(filepath)
+            sr = decoded.sample_rate
+            nchannels = decoded.nchannels
+            raw = np.frombuffer(decoded.samples, dtype=np.int16).astype(np.float32) / 32768.0
+
+            if nchannels >= 2:
+                l_chan = raw[0::nchannels]
+                r_chan = raw[1::nchannels]
+                min_len = min(len(l_chan), len(r_chan))
+                stereo = np.column_stack([l_chan[:min_len], r_chan[:min_len]])
+            else:
+                stereo = np.column_stack([raw, raw])
+
+            with self._stream_lock:
+                self.raw_stereo_data = stereo
+                self.sample_rate = sr
+                self.dsp_eq.set_sample_rate(sr)
+            self.analyzer.load_track(filepath)
+        except Exception as e:
+            print(f"Error loading audio samples: {e}")
 
     def play_index(self, index):
         if 0 <= index < len(self.playlist):
             self.current_index = index
             track = self.playlist[self.current_index]
-            self.analyzer.load_track(track.filepath)
+            self._load_track_samples(track.filepath)
+            self.playback_sample_index = 0
+            self._start_stream()
+            self.is_playing = True
+            self.is_paused = False
+            self.pos_timer.start()
+            self.track_changed.emit(track)
+            self.playback_state_changed.emit(True)
+            self.save_playlist_state()
+
+    def _start_stream(self):
+        self._stop_stream()
+        try:
+            self.stream = sd.OutputStream(
+                samplerate=self.sample_rate,
+                channels=2,
+                dtype='float32',
+                blocksize=1024,
+                callback=self._audio_callback
+            )
+            self.stream.start()
+        except Exception as e:
+            print(f"Error starting audio stream: {e}")
+
+    def _stop_stream(self):
+        if self.stream is not None:
             try:
-                pygame.mixer.music.load(track.filepath)
-                pygame.mixer.music.set_volume(self.volume / 100.0)
-                pygame.mixer.music.play()
-                self.is_playing = True
-                self.is_paused = False
-                self.seek_offset = 0.0
-                self.current_position = 0.0
-                self.pos_timer.start()
-                self.track_changed.emit(track)
-                self.playback_state_changed.emit(True)
-                self.save_playlist_state()
-            except Exception as e:
-                print(f"Error playing track {track.filepath}: {e}")
-                self.next_track()
+                self.stream.stop()
+                self.stream.close()
+            except Exception:
+                pass
+            self.stream = None
+
+    def _audio_callback(self, outdata, frames, time_info, status):
+        if not self.is_playing or self.is_paused or self.raw_stereo_data is None:
+            outdata.fill(0)
+            return
+
+        with self._stream_lock:
+            total_samples = len(self.raw_stereo_data)
+            current_idx = self.playback_sample_index
+
+            if current_idx >= total_samples:
+                outdata.fill(0)
+                # Next track trigger
+                QTimer.singleShot(0, self.next_track)
+                return
+
+            end_idx = min(total_samples, current_idx + frames)
+            chunk = self.raw_stereo_data[current_idx:end_idx]
+            self.playback_sample_index = end_idx
+
+        # Pad if short
+        if len(chunk) < frames:
+            pad_len = frames - len(chunk)
+            chunk = np.pad(chunk, ((0, pad_len), (0, 0)))
+
+        # 1. Master Volume & Balance
+        vol_factor = self.volume / 100.0
+        left_gain = vol_factor * (1.0 - max(0.0, self.balance))
+        right_gain = vol_factor * (1.0 + min(0.0, self.balance))
+
+        chunk[:, 0] *= left_gain
+        chunk[:, 1] *= right_gain
+
+        # 2. REAL-TIME 10-BAND DSP EQUALIZER & PREAMP
+        processed = self.dsp_eq.process(chunk)
+
+        outdata[:] = processed
 
     def play(self):
         if self.is_paused:
-            pygame.mixer.music.unpause()
             self.is_playing = True
             self.is_paused = False
+            if self.stream is None:
+                self._start_stream()
             self.pos_timer.start()
             self.playback_state_changed.emit(True)
         elif self.playlist:
@@ -173,7 +278,6 @@ class AudioEngine(QObject):
 
     def pause(self):
         if self.is_playing:
-            pygame.mixer.music.pause()
             self.is_playing = False
             self.is_paused = True
             self.pos_timer.stop()
@@ -182,11 +286,10 @@ class AudioEngine(QObject):
             self.play()
 
     def stop(self):
-        pygame.mixer.music.stop()
         self.is_playing = False
         self.is_paused = False
-        self.current_position = 0.0
-        self.seek_offset = 0.0
+        self.playback_sample_index = 0
+        self._stop_stream()
         self.pos_timer.stop()
         self.position_changed.emit(0.0)
         self.playback_state_changed.emit(False)
@@ -219,19 +322,11 @@ class AudioEngine(QObject):
             self.play_index(len(self.playlist) - 1)
 
     def seek(self, seconds):
-        if self.current_track:
+        if self.current_track and self.current_track.duration > 0:
             target = max(0.0, min(self.current_track.duration, seconds))
-            try:
-                pygame.mixer.music.play(start=target)
-                self.seek_offset = target
-                self.current_position = target
-                self.is_playing = True
-                self.is_paused = False
-                self.pos_timer.start()
-                self.playback_state_changed.emit(True)
-                self.position_changed.emit(target)
-            except Exception as e:
-                print(f"Error seeking: {e}")
+            with self._stream_lock:
+                self.playback_sample_index = int(target * self.sample_rate)
+            self.position_changed.emit(target)
 
     def remove_track(self, index):
         if 0 <= index < len(self.playlist):
@@ -255,6 +350,22 @@ class AudioEngine(QObject):
         self.current_index = -1
         self.playlist_updated.emit()
         self.save_playlist_state()
+
+    @property
+    def current_position(self):
+        if self.sample_rate > 0:
+            return float(self.playback_sample_index) / float(self.sample_rate)
+        return 0.0
+
+    @property
+    def current_track(self):
+        if 0 <= self.current_index < len(self.playlist):
+            return self.playlist[self.current_index]
+        return None
+
+    def _poll_position(self):
+        if self.is_playing:
+            self.position_changed.emit(self.current_position)
 
     # -------------------------------------------------------------------------
     # State Persistence & M3U Export/Import
@@ -320,19 +431,3 @@ class AudioEngine(QObject):
         except Exception as e:
             print(f"Error loading M3U: {e}")
             return False
-
-    @property
-    def current_track(self):
-        if 0 <= self.current_index < len(self.playlist):
-            return self.playlist[self.current_index]
-        return None
-
-    def _update_position(self):
-        if self.is_playing:
-            if not pygame.mixer.music.get_busy():
-                self.next_track()
-                return
-            pos_ms = pygame.mixer.music.get_pos()
-            if pos_ms >= 0:
-                self.current_position = self.seek_offset + (pos_ms / 1000.0)
-                self.position_changed.emit(self.current_position)
