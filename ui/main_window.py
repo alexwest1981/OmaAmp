@@ -8,6 +8,7 @@ from PyQt6.QtGui import QFont, QColor
 
 from ui.lcd_display import LcdDisplay, MarqueeDisplay
 from ui.visualizer_widget import VisualizerWidget
+from ui.visualizer_studio import VisualizerStudio
 from ui.theme_dialog import ThemeDialog
 from ui.equalizer_window import EqualizerWindow
 from ui.playlist_window import PlaylistWindow
@@ -214,6 +215,12 @@ class MainWindow(QWidget):
         self.btn_pl.clicked.connect(self._toggle_pl)
         btn_row.addWidget(self.btn_pl)
 
+        self.btn_vis = QPushButton("VIS")
+        self.btn_vis.setFixedSize(28, 22)
+        self.btn_vis.setToolTip("Open Visualizer Studio (Fullscreen / Multi-mode)")
+        self.btn_vis.clicked.connect(self._open_vis_studio)
+        btn_row.addWidget(self.btn_vis)
+
         player_layout.addLayout(btn_row)
         root_layout.addWidget(self.player_frame)
 
@@ -296,6 +303,12 @@ class MainWindow(QWidget):
     def _open_theme_dialog(self):
         dlg = ThemeDialog(self.theme_mgr, self)
         dlg.exec()
+
+    def _open_vis_studio(self):
+        studio = VisualizerStudio(self.theme_mgr, self.vis_gen, self)
+        studio.set_playing(self.audio.is_playing)
+        studio.set_volume(self.audio.volume)
+        studio.exec()
 
     def closeEvent(self, event):
         self.config.set("volume", self.slider_vol.value())
