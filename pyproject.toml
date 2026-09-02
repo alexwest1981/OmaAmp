@@ -9,6 +9,9 @@ dependencies = [
     "pygame>=2.5.0",
     "mutagen>=1.47.0",
     "numpy>=1.26.0",
+    "miniaudio>=1.71",
+    "soundfile>=0.14.0",
+    "scipy>=1.15.3",
 ]
 
 [project.scripts]

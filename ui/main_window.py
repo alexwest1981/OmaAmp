@@ -101,7 +101,7 @@ class MainWindow(QWidget):
         self.lcd = LcdDisplay(self.theme_mgr, self)
         deck_mid.addWidget(self.lcd)
 
-        self.vis = VisualizerWidget(self.theme_mgr, self.vis_gen, self)
+        self.vis = VisualizerWidget(self.theme_mgr, self.audio, self)
         self.vis.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.vis.setFixedHeight(42)
         deck_mid.addWidget(self.vis)
@@ -311,9 +311,7 @@ class MainWindow(QWidget):
         dlg.exec()
 
     def _open_vis_studio(self):
-        studio = VisualizerStudio(self.theme_mgr, self.vis_gen, self)
-        studio.set_playing(self.audio.is_playing)
-        studio.set_volume(self.audio.volume)
+        studio = VisualizerStudio(self.theme_mgr, self.audio, self)
         studio.exec()
 
     def closeEvent(self, event):

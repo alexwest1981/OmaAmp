@@ -4,6 +4,7 @@ import random
 import pygame
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer
 import mutagen
+from core.audio_analyzer import AudioAnalyzer
 
 PLAYLIST_FILE = os.path.expanduser("~/.config/omaamp/playlist.json")
 
@@ -93,8 +94,13 @@ class AudioEngine(QObject):
         self.pos_timer.setInterval(200)
         self.pos_timer.timeout.connect(self._update_position)
 
+        # Real-time audio analyzer for FFT & waveform
+        self.analyzer = AudioAnalyzer(num_bars=24)
+
         # Restore saved playlist state on startup
         self.load_playlist_state()
+        if self.current_track:
+            self.analyzer.load_track(self.current_track.filepath)
 
     def set_volume(self, val):
         self.volume = max(0, min(100, val))
@@ -129,12 +135,14 @@ class AudioEngine(QObject):
                 self.current_index = 0
                 if self.current_track:
                     self.track_changed.emit(self.current_track)
+                    self.analyzer.load_track(self.current_track.filepath)
             self.save_playlist_state()
 
     def play_index(self, index):
         if 0 <= index < len(self.playlist):
             self.current_index = index
             track = self.playlist[self.current_index]
+            self.analyzer.load_track(track.filepath)
             try:
                 pygame.mixer.music.load(track.filepath)
                 pygame.mixer.music.set_volume(self.volume / 100.0)

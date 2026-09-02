@@ -4,30 +4,28 @@ from PyQt6.QtCore import Qt, QTimer, QPointF
 from PyQt6.QtGui import QPainter, QColor, QPen, QBrush, QFont, QLinearGradient, QPainterPath
 
 VIS_MODES = [
-    ("spectrum", "📊 Spectrum Analyzer"),
-    ("oscilloscope", "〰️ Laser Oscilloscope"),
-    ("vu_meter", "📻 Dual Analog VU Meters"),
+    ("spectrum", "📊 Spectrum Analyzer (Real FFT)"),
+    ("oscilloscope", "〰️ Laser Oscilloscope (Real PCM)"),
+    ("vu_meter", "📻 Dual Analog VU Meters (Real RMS)"),
     ("starfield", "✨ 3D Warp Starfield"),
     ("matrix", "💻 Matrix Code Rain"),
     ("circular", "🔘 Polar Frequency Ring")
 ]
 
 class VisualizerWidget(QWidget):
-    def __init__(self, theme_mgr, vis_generator, parent=None):
+    def __init__(self, theme_mgr, audio_engine, parent=None):
         super().__init__(parent)
         self.theme_mgr = theme_mgr
-        self.vis_gen = vis_generator
+        self.audio = audio_engine
         self.mode_index = 0
         self.mode = VIS_MODES[self.mode_index][0]
-        self.is_playing = False
-        self.volume = 80
         self.setMinimumHeight(42)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setToolTip("Click to cycle modes | Right-click for Visualizer Menu")
 
-        # 45 FPS render loop
+        # 50 FPS high-smoothness render loop
         self.timer = QTimer(self)
-        self.timer.setInterval(22)
+        self.timer.setInterval(20)
         self.timer.timeout.connect(self.update_frame)
         self.timer.start()
 
@@ -57,10 +55,10 @@ class VisualizerWidget(QWidget):
         self.update()
 
     def set_playing(self, is_playing):
-        self.is_playing = is_playing
+        pass  # reads directly from self.audio.is_playing
 
     def set_volume(self, volume):
-        self.volume = volume
+        pass  # reads directly from self.audio.volume
 
     def update_frame(self):
         self.update()
@@ -90,7 +88,9 @@ class VisualizerWidget(QWidget):
 
     def _draw_spectrum(self, painter, w, h):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
-        bars, peaks = self.vis_gen.update(self.is_playing, self.volume)
+        bars, peaks = self.audio.analyzer.get_real_spectrum(
+            self.audio.is_playing, self.audio.current_position, self.audio.volume
+        )
         num_bars = len(bars)
         bar_width = int(w / num_bars) - 1
         bar_width = max(3, bar_width)
@@ -109,7 +109,7 @@ class VisualizerWidget(QWidget):
             gap = 1
             y = h - 2
             while y > (h - 2 - bar_h):
-                rel_height = (h - 2 - y) / (h - 4)
+                rel_height = (h - 2 - y) / max(1, (h - 4))
                 if rel_height < 0.55:
                     seg_col = col_low
                 elif rel_height < 0.85:
@@ -124,12 +124,14 @@ class VisualizerWidget(QWidget):
                 painter.fillRect(x, peak_y, bar_width, 1, col_peak)
 
     def _draw_oscilloscope(self, painter, w, h):
-        wave = self.vis_gen.get_oscilloscope_wave(self.is_playing, num_points=w, volume=self.volume)
+        wave = self.audio.analyzer.get_real_waveform(
+            self.audio.is_playing, self.audio.current_position, num_points=w, volume=self.audio.volume
+        )
         pen_col = self.theme_mgr.color("vis_oscilloscope", "#00ff66")
         
-        # Soft laser glow
+        # Soft laser glow trail
         glow_col = QColor(pen_col)
-        glow_col.setAlpha(60)
+        glow_col.setAlpha(55)
         painter.setPen(QPen(glow_col, 3))
         mid_y = h / 2.0
         for x in range(len(wave) - 1):
@@ -145,9 +147,11 @@ class VisualizerWidget(QWidget):
             painter.drawLine(x, y1, x + 1, y2)
 
     def _draw_vu_meter(self, painter, w, h):
-        self.vis_gen.update(self.is_playing, self.volume)
-        vu_l = self.vis_gen.vu_left
-        vu_r = self.vis_gen.vu_right
+        self.audio.analyzer.get_real_spectrum(
+            self.audio.is_playing, self.audio.current_position, self.audio.volume
+        )
+        vu_l = self.audio.analyzer.vu_left
+        vu_r = self.audio.analyzer.vu_right
 
         meter_w = int((w - 8) / 2)
         
@@ -163,19 +167,18 @@ class VisualizerWidget(QWidget):
             center_y = h + 4
             radius = h * 0.95
 
-            # Angle -45 to +45 deg
+            # Needle angle
             angle_rad = math.radians(-40 + vu_val * 80)
             needle_x = center_x + radius * math.sin(angle_rad)
             needle_y = center_y - radius * math.cos(angle_rad)
 
-            # Arc track
+            # Labels
             painter.setPen(QPen(self.theme_mgr.color("vis_bars_low", "#00ff44"), 1))
             painter.drawText(offset_x + 4, 14, label)
             
-            # Draw dB marks
             font_db = QFont("Monospace", 6)
             painter.setFont(font_db)
-            painter.drawText(offset_x + meter_w - 20, 14, f"{int(vu_val*100)}%")
+            painter.drawText(offset_x + meter_w - 22, 14, f"{int(vu_val*100)}%")
 
             # Needle
             col_needle = self.theme_mgr.color("vis_bars_high", "#ff2200") if vu_val > 0.85 else self.theme_mgr.color("vis_peaks", "#ffffff")
@@ -183,7 +186,9 @@ class VisualizerWidget(QWidget):
             painter.drawLine(int(center_x), int(center_y), int(needle_x), int(needle_y))
 
     def _draw_starfield(self, painter, w, h):
-        sx, sy, sz, bass = self.vis_gen.update_starfield(self.is_playing, self.volume)
+        sx, sy, sz, bass = self.audio.analyzer.update_starfield(
+            self.audio.is_playing, self.audio.current_position, self.audio.volume
+        )
         cx = w / 2.0
         cy = h / 2.0
 
@@ -203,7 +208,7 @@ class VisualizerWidget(QWidget):
                 painter.fillRect(x, y, size, size, c)
 
     def _draw_matrix(self, painter, w, h):
-        drops = self.vis_gen.update_matrix(self.is_playing)
+        drops = self.audio.analyzer.update_matrix(self.audio.is_playing)
         col_green = self.theme_mgr.color("lcd_text", "#00ff33")
         col_head = self.theme_mgr.color("vis_peaks", "#ffffff")
 
@@ -217,7 +222,6 @@ class VisualizerWidget(QWidget):
             x = col_idx * col_w + 2
             y_head = int(drop_y * 3)
 
-            # Draw trail
             for trail in range(5):
                 y = y_head - trail * 8
                 if 0 <= y < h:
@@ -232,7 +236,9 @@ class VisualizerWidget(QWidget):
                     painter.drawText(x, y, char)
 
     def _draw_circular(self, painter, w, h):
-        bars, peaks = self.vis_gen.update(self.is_playing, self.volume)
+        bars, peaks = self.audio.analyzer.get_real_spectrum(
+            self.audio.is_playing, self.audio.current_position, self.audio.volume
+        )
         cx = w / 2.0
         cy = h / 2.0
         base_radius = min(w, h) * 0.22

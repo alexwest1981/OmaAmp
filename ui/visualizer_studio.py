@@ -5,10 +5,10 @@ from PyQt6.QtGui import QFont
 from ui.visualizer_widget import VisualizerWidget, VIS_MODES
 
 class VisualizerStudio(QDialog):
-    def __init__(self, theme_mgr, vis_gen, parent=None):
+    def __init__(self, theme_mgr, audio_engine, parent=None):
         super().__init__(parent)
         self.theme_mgr = theme_mgr
-        self.vis_gen = vis_gen
+        self.audio = audio_engine
 
         self.setWindowTitle("OmaAmp Visualizer Studio")
         self.resize(640, 420)
@@ -45,7 +45,7 @@ class VisualizerStudio(QDialog):
         layout.addLayout(top_bar)
 
         # Big Visualizer Canvas
-        self.canvas = VisualizerWidget(self.theme_mgr, self.vis_gen, self)
+        self.canvas = VisualizerWidget(self.theme_mgr, self.audio, self)
         self.canvas.setMinimumHeight(200)
         layout.addWidget(self.canvas)
 
