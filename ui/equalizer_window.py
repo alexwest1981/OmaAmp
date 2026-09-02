@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QPushButton, QComboBox
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QPushButton, QComboBox, QSizePolicy
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPainter, QPen, QColor, QFont
@@ -58,9 +58,8 @@ class EqualizerWindow(QWidget):
     def __init__(self, theme_mgr, parent=None):
         super().__init__(parent)
         self.theme_mgr = theme_mgr
-        self.setFixedSize(300, 140)
-        self.setWindowTitle("OmaAmp Equalizer")
-        self.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint)
+        self.setFixedHeight(140)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         self.sliders = []
         self.preamp_val = 0

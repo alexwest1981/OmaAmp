@@ -13,9 +13,6 @@ class PlaylistWindow(QWidget):
         super().__init__(parent)
         self.audio = audio_engine
         self.theme_mgr = theme_mgr
-        self.setFixedSize(300, 220)
-        self.setWindowTitle("OmaAmp Playlist")
-        self.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint)
         self.setAcceptDrops(True)
 
         self.init_ui()
