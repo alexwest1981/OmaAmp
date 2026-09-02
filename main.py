@@ -28,10 +28,10 @@ def main():
     audio_engine = AudioEngine()
     vis_gen = VisualizerGenerator(num_bars=19)
 
-    # If file paths passed on CLI, queue them
-    if len(sys.argv) > 1:
-        args_paths = sys.argv[1:]
-        audio_engine.add_files(args_paths)
+    # If valid audio file paths passed on CLI, queue them
+    valid_paths = [p for p in sys.argv[1:] if p and not p.startswith("%") and os.path.exists(p)]
+    if valid_paths:
+        audio_engine.add_files(valid_paths)
 
     window = MainWindow(audio_engine, theme_mgr, config_mgr, vis_gen)
     window.show()

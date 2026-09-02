@@ -50,6 +50,12 @@ class MainWindow(QWidget):
         self.pl_frame.setVisible(show_pl)
         self.btn_pl.setChecked(show_pl)
 
+        # Restore active track metadata and playlist list
+        if self.audio.current_track:
+            self.marquee.set_track(self.audio.current_track)
+            self.lcd.set_track(self.audio.current_track)
+        self.pl_widget.refresh_list()
+
     def init_ui(self):
         root_layout = QVBoxLayout(self)
         root_layout.setContentsMargins(6, 6, 6, 6)
