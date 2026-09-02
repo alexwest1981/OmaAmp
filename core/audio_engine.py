@@ -1,11 +1,11 @@
 import os
+import json
 import random
 import pygame
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer
 import mutagen
-from mutagen.mp3 import MP3
-from mutagen.flac import FLAC
-from mutagen.oggvorbis import OggVorbis
+
+PLAYLIST_FILE = os.path.expanduser("~/.config/omaamp/playlist.json")
 
 class Track:
     def __init__(self, filepath):
@@ -35,10 +35,8 @@ class Track:
                 if hasattr(audio.info, 'channels'):
                     self.channels = int(audio.info.channels)
 
-                # Extract ID3 tags
                 tags = audio.tags
                 if tags:
-                    # MP3 EasyID3 / ID3
                     title = tags.get("TIT2") or tags.get("title")
                     artist = tags.get("TPE1") or tags.get("artist")
                     album = tags.get("TALB") or tags.get("album")
@@ -67,8 +65,8 @@ class Track:
 
 class AudioEngine(QObject):
     track_changed = pyqtSignal(object)
-    playback_state_changed = pyqtSignal(bool)  # True if playing, False if paused/stopped
-    position_changed = pyqtSignal(float)      # current pos in seconds
+    playback_state_changed = pyqtSignal(bool)
+    position_changed = pyqtSignal(float)
     playlist_updated = pyqtSignal()
     volume_changed = pyqtSignal(int)
 
@@ -95,6 +93,9 @@ class AudioEngine(QObject):
         self.pos_timer.setInterval(200)
         self.pos_timer.timeout.connect(self._update_position)
 
+        # Restore saved playlist state on startup
+        self.load_playlist_state()
+
     def set_volume(self, val):
         self.volume = max(0, min(100, val))
         try:
@@ -112,6 +113,9 @@ class AudioEngine(QObject):
                 if ext in valid_exts:
                     self.playlist.append(Track(fpath))
                     added = True
+                elif ext in {".m3u", ".m3u8"}:
+                    self.load_m3u(fpath)
+                    added = True
             elif os.path.isdir(fpath):
                 for root, _, files in os.walk(fpath):
                     for fname in sorted(files):
@@ -123,6 +127,9 @@ class AudioEngine(QObject):
             self.playlist_updated.emit()
             if self.current_index == -1 and len(self.playlist) > 0:
                 self.current_index = 0
+                if self.current_track:
+                    self.track_changed.emit(self.current_track)
+            self.save_playlist_state()
 
     def play_index(self, index):
         if 0 <= index < len(self.playlist):
@@ -139,6 +146,7 @@ class AudioEngine(QObject):
                 self.pos_timer.start()
                 self.track_changed.emit(track)
                 self.playback_state_changed.emit(True)
+                self.save_playlist_state()
             except Exception as e:
                 print(f"Error playing track {track.filepath}: {e}")
                 self.next_track()
@@ -194,7 +202,6 @@ class AudioEngine(QObject):
     def prev_track(self):
         if not self.playlist:
             return
-        # If played more than 3 seconds, restart current track
         if self.current_position > 3.0:
             self.seek(0.0)
             return
@@ -232,12 +239,79 @@ class AudioEngine(QObject):
                     self.current_index -= 1
                 self.playlist.pop(index)
             self.playlist_updated.emit()
+            self.save_playlist_state()
 
     def clear_playlist(self):
         self.stop()
         self.playlist.clear()
         self.current_index = -1
         self.playlist_updated.emit()
+        self.save_playlist_state()
+
+    # -------------------------------------------------------------------------
+    # State Persistence & M3U Export/Import
+    # -------------------------------------------------------------------------
+    def save_playlist_state(self):
+        os.makedirs(os.path.dirname(PLAYLIST_FILE), exist_ok=True)
+        data = {
+            "current_index": self.current_index,
+            "tracks": [t.filepath for t in self.playlist if os.path.exists(t.filepath)]
+        }
+        try:
+            with open(PLAYLIST_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+        except Exception as e:
+            print(f"Error saving playlist state: {e}")
+
+    def load_playlist_state(self):
+        if os.path.exists(PLAYLIST_FILE):
+            try:
+                with open(PLAYLIST_FILE, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    paths = data.get("tracks", [])
+                    saved_idx = data.get("current_index", -1)
+                    
+                    self.playlist = [Track(p) for p in paths if os.path.exists(p)]
+                    if self.playlist:
+                        if 0 <= saved_idx < len(self.playlist):
+                            self.current_index = saved_idx
+                        else:
+                            self.current_index = 0
+            except Exception as e:
+                print(f"Error loading playlist state: {e}")
+
+    def save_m3u(self, m3u_path):
+        try:
+            with open(m3u_path, "w", encoding="utf-8") as f:
+                f.write("#EXTM3U\n")
+                for track in self.playlist:
+                    duration_int = int(track.duration)
+                    f.write(f"#EXTINF:{duration_int},{track.display_name}\n")
+                    f.write(f"{track.filepath}\n")
+            return True
+        except Exception as e:
+            print(f"Error saving M3U: {e}")
+            return False
+
+    def load_m3u(self, m3u_path):
+        if not os.path.exists(m3u_path):
+            return False
+        try:
+            with open(m3u_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+                for line in lines:
+                    line = line.strip()
+                    if line and not line.startswith("#"):
+                        if not os.path.isabs(line):
+                            line = os.path.join(os.path.dirname(m3u_path), line)
+                        if os.path.isfile(line):
+                            self.playlist.append(Track(line))
+            self.playlist_updated.emit()
+            self.save_playlist_state()
+            return True
+        except Exception as e:
+            print(f"Error loading M3U: {e}")
+            return False
 
     @property
     def current_track(self):
@@ -248,7 +322,6 @@ class AudioEngine(QObject):
     def _update_position(self):
         if self.is_playing:
             if not pygame.mixer.music.get_busy():
-                # Track ended
                 self.next_track()
                 return
             pos_ms = pygame.mixer.music.get_pos()

@@ -73,6 +73,12 @@ class PlaylistWindow(QWidget):
         self.btn_clear.clicked.connect(self.audio.clear_playlist)
         bottom_row.addWidget(self.btn_clear)
 
+        self.btn_save_m3u = QPushButton("💾 M3U")
+        self.btn_save_m3u.setFixedHeight(18)
+        self.btn_save_m3u.setToolTip("Export Playlist as .m3u")
+        self.btn_save_m3u.clicked.connect(self._save_m3u_dialog)
+        bottom_row.addWidget(self.btn_save_m3u)
+
         bottom_row.addStretch()
 
         self.lbl_total = QLabel("0 tracks")
@@ -104,6 +110,15 @@ class PlaylistWindow(QWidget):
         dir_path = QFileDialog.getExistingDirectory(self, "Add Folder of Music")
         if dir_path:
             self.audio.add_files([dir_path])
+
+    def _save_m3u_dialog(self):
+        if not self.audio.playlist:
+            return
+        fpath, _ = QFileDialog.getSaveFileName(self, "Export Playlist as M3U", "", "M3U Playlist (*.m3u *.m3u8)")
+        if fpath:
+            if not (fpath.endswith(".m3u") or fpath.endswith(".m3u8")):
+                fpath += ".m3u8"
+            self.audio.save_m3u(fpath)
 
     def _remove_selected(self):
         row = self.list_widget.currentRow()
