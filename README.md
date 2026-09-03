@@ -1,8 +1,8 @@
 # OmaAmp ⚡🎵
 
-A genuine, standalone **Winamp 2.91 Classic Audio Player** built with Python and Qt for Linux & Omarchy.
+A genuine, standalone **Winamp 2.91 Classic Audio Player** built with Python, Qt, and real-time DSP audio processing for Linux & Omarchy.
 
-Featuring modular magnetic docking windows, real-time animated spectrum analyzer / oscilloscope, retro 7-segment green phosphor LED time display, marquee scrolling track screen, 10-band graphic equalizer with presets, drag-and-drop playlist editor, and a fully customizable theme engine!
+Featuring a tileable responsive layout, real-time FFT spectrum analyzer / PCM oscilloscope, demoscene visualizer modes, retro 7-segment green phosphor LED time display, marquee scrolling track screen, 10-band IIR biquad graphic equalizer with presets, drag-and-drop playlist editor, and a fully customizable theme engine!
 
 ![OmaAmp Preview](./screenshot.png)
 
@@ -12,25 +12,34 @@ Featuring modular magnetic docking windows, real-time animated spectrum analyzer
 
 * **📻 Authentic Winamp 2.91 Main Player:**
   * **7-Segment LED Clock:** Displays elapsed or remaining track time (`-03:45`) with ghost LCD back-lighting. Click the time digits to toggle mode!
-  * **Real-time Spectrum Visualizer:** 19-band frequency visualizer with falling peak dots. Click the visualizer box to switch between **Spectrum Analyzer** and **Oscilloscope Waveform**!
+  * **Real-time FFT Spectrum Visualizer:** 24-band Fast Fourier Transform (FFT) frequency analyzer with gravity peak-drop physics calculated directly from playing audio samples. Click or right-click to switch between 6 modes!
   * **Marquee LCD Screen:** Smooth scrolling song title and artist.
   * **Specs Readout:** Real-time bitrate (`320 kbps`), sample rate (`44.1 kHz`), and `STEREO` / `MONO` indicator lights.
   * **Controls:** `|<<` (Prev), `▶` (Play), `❚❚` (Pause), `■` (Stop), `>>|` (Next), `⏏` (Eject/Open).
   * **Sliders:** Master Volume (`VOL`), Left/Right Balance (`BAL`), and Track Seek Position (`POSITION`).
   * **Modes:** `SHUF` (Shuffle) and `REP` (Repeat).
 
-* **🎚️ 10-Band Graphic Equalizer (`EQ`):**
-  * 10 frequency bands (60Hz, 170Hz, 310Hz, 600Hz, 1kHz, 3kHz, 6kHz, 12kHz, 14kHz, 16kHz) + Preamp slider.
+* **🎚️ 10-Band Real-time DSP Graphic Equalizer (`EQ`):**
+  * True digital signal processing using 10 second-order peaking IIR biquad filters (60Hz, 170Hz, 310Hz, 600Hz, 1kHz, 3kHz, 6kHz, 12kHz, 14kHz, 16kHz).
+  * Preamp slider (±12 dB) with analog soft limiter.
   * Live frequency response curve graph.
   * One-click presets: *Rock, Pop, Techno, Dance, Full Bass, Full Treble, Club, Classical, Live, Flat*.
-  * `ZERO` button to reset all bands instantly.
+  * `ON` toggle for instant A/B sound comparison and `ZERO` button to reset all bands.
+
+* **🌌 6 Demoscene Visualizer Modes & Visualizer Studio:**
+  1. **📊 Spectrum Analyzer (Real FFT):** 24 discrete multi-color LED frequency bars.
+  2. **〰️ Laser Oscilloscope (Real PCM):** Exact glowing laser waveform curve.
+  3. **📻 Dual Analog VU Meters (Real RMS):** True bouncing L/R needles with dB meters.
+  4. **✨ 3D Warp Starfield:** 3D space warp accelerating to bass kicks.
+  5. **💻 Matrix Code Rain:** Cascading green digital rain reacting to tempo.
+  6. **🔘 Polar Frequency Ring:** 360-degree radial bass visualizer.
+  * Click **`VIS`** to open **Visualizer Studio** in a resizable window with Fullscreen mode!
 
 * **📜 Drag & Drop Playlist Editor (`PL`):**
-  * **Drag & Drop:** Simply drag MP3, FLAC, WAV, OGG, or AAC files and whole folders straight from your file manager into OmaAmp!
+  * **Drag & Drop:** Simply drag MP3, FLAC, WAV, OGG, AAC files or folders straight from your file manager into OmaAmp!
   * Instant search filter to find tracks in massive libraries.
-  * Active playing song highlighted with gold glow.
-  * Total playlist statistics (e.g. `14 tracks / 52:10 min`).
-  * `+ FILE`, `+ DIR`, `- REM`, and `CLEAR` buttons.
+  * Automatic state save and restore on application restart (`~/.config/omaamp/playlist.json`).
+  * `💾 M3U` button to export and import standard `.m3u` playlists.
 
 * **🎨 Custom Themes & Skin Engine:**
   * Comes with 4 built-in themes:
@@ -42,19 +51,19 @@ Featuring modular magnetic docking windows, real-time animated spectrum analyzer
 
 ---
 
-## 🚀 How to Launch
+## 🚀 Installation & Launch
 
-### Launch via Terminal:
+### 1-Click Install:
+Clone and run the installer:
 ```bash
-omaamp
-```
-Or open audio files directly:
-```bash
-omaamp ~/Music/*.mp3
+git clone https://github.com/alexwest1981/OmaAmp.git
+cd OmaAmp
+./install.sh
 ```
 
-### Launch via Application Menu:
-Press `Super + Space` (or your app launcher) and search for **OmaAmp**!
+### Launching:
+* **Via Terminal:** `omaamp` (or `omaamp ~/Music/*.mp3`)
+* **Via App Menu:** Press `Super + Space` (or your app launcher) and search for **OmaAmp**!
 
 ---
 
@@ -102,36 +111,6 @@ To create a new theme manually, create a JSON file (e.g. `~/.config/omaamp/theme
 }
 ```
 Open OmaAmp, click **`SKIN`**, and your theme will appear immediately in the list!
-
----
-
-## 📂 Project Structure
-
-```
-OmaAmp/
-├── main.py                  # Entry point & application controller
-├── omaamp                   # Executable bash launcher
-├── omaamp.desktop           # Linux Desktop entry
-├── icon.png                 # Retro app icon
-├── core/
-│   ├── audio_engine.py      # Playback engine, playlist queue, metadata parser
-│   ├── config.py            # User configuration (~/.config/omaamp/config.json)
-│   ├── theme_manager.py     # Theme loader & hot-swapper (~/.config/omaamp/themes/)
-│   └── visualizer_data.py   # Spectrum analyzer & oscilloscope mathematics
-├── ui/
-│   ├── main_window.py       # Main Winamp player window
-│   ├── visualizer_widget.py # Spectrum analyzer & oscilloscope canvas
-│   ├── lcd_display.py       # 7-Segment LED time + marquee display
-│   ├── equalizer_window.py  # 10-Band graphic EQ window
-│   ├── playlist_window.py   # Drag & drop Playlist editor
-│   └── theme_dialog.py      # Theme picker & custom theme creator
-├── themes/
-│   ├── classic_retro.json   # Authentic Winamp 2.91 theme
-│   ├── modern_dark.json     # Modern obsidian theme
-│   ├── cyberpunk_neon.json  # Cyberpunk neon theme
-│   └── amber_phosphor.json  # Amber CRT terminal theme
-└── README.md
-```
 
 ---
 
