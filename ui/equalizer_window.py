@@ -197,9 +197,9 @@ class EqualizerWindow(QWidget):
         self.eq_changed.emit(bands, preamp)
 
     def apply_theme(self):
-        is_skinned = (self.theme_mgr.active_skin is not None)
-        self.skinned_eq_container.setVisible(is_skinned)
-        self.vector_eq_container.setVisible(not is_skinned)
+        # Always use the responsive tile-optimized equalizer engine
+        self.skinned_eq_container.setVisible(False)
+        self.vector_eq_container.setVisible(True)
         
         bg = self.theme_mgr.hex("chassis_bg", "#282932")
         border = self.theme_mgr.hex("chassis_border", "#4e5062")
@@ -209,6 +209,28 @@ class EqualizerWindow(QWidget):
         title_text = self.theme_mgr.hex("titlebar_text", "#00e5ff")
         trough = self.theme_mgr.hex("slider_trough", "#0a0a0e")
         thumb = self.theme_mgr.hex("slider_thumb", "#5a5d72")
+
+        knob_path = self.theme_mgr.knob_image_path()
+        if knob_path:
+            handle_css = f"""
+                QSlider::handle:vertical {{
+                    image: url('{knob_path}');
+                    width: 20px;
+                    height: 15px;
+                    margin: 0 -7px;
+                    background: transparent;
+                }}
+            """
+        else:
+            handle_css = f"""
+                QSlider::handle:vertical {{
+                    background: {thumb};
+                    height: 12px;
+                    margin: 0 -4px;
+                    border-radius: 2px;
+                    border: 1px solid {border};
+                }}
+            """
 
         self.setStyleSheet(f"""
             EqualizerWindow, QWidget {{
@@ -223,6 +245,7 @@ class EqualizerWindow(QWidget):
                 border-radius: 2px;
                 font-size: 8px;
                 font-weight: bold;
+                padding: 1px 4px;
             }}
             QPushButton:checked {{
                 color: {btn_active};
@@ -232,19 +255,16 @@ class EqualizerWindow(QWidget):
                 background-color: {btn_bg};
                 color: {btn_text};
                 border: 1px solid {border};
+                border-radius: 2px;
                 font-size: 8px;
+                padding: 1px 4px;
             }}
             QSlider::groove:vertical {{
                 background: {trough};
-                width: 4px;
+                width: 5px;
                 border-radius: 2px;
             }}
-            QSlider::handle:vertical {{
-                background: {thumb};
-                height: 10px;
-                margin: 0 -4px;
-                border-radius: 2px;
-            }}
+            {handle_css}
             QSlider::handle:vertical:hover {{
                 background: {btn_active};
             }}

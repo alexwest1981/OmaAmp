@@ -193,6 +193,26 @@ class WinampSkin:
                 QPixmap.fromImage(pledit.copy(235, 74, 30, 24))
             )
 
+        # 5. Masked Slider Knob PNG
+        eqmain = self.bitmaps.get('eqmain')
+        eq_ex = self.bitmaps.get('eq_ex')
+        knob_img = None
+        if eqmain and not eqmain.isNull() and eqmain.width() >= 92 and eqmain.height() >= 70:
+            knob_img = eqmain.copy(78, 59, 14, 11).convertToFormat(QImage.Format.Format_ARGB32)
+            for pt in [(0,0), (1,0), (0,1), (12,0), (13,0), (13,1), (0,9), (0,10), (1,10), (13,9), (12,10), (13,10)]:
+                knob_img.setPixelColor(pt[0], pt[1], QColor(0, 0, 0, 0))
+        elif eq_ex and not eq_ex.isNull() and eq_ex.width() >= 14:
+            knob_img = eq_ex.copy(0, 0, 14, 11).convertToFormat(QImage.Format.Format_ARGB32)
+
+        if knob_img:
+            cache_dir = os.path.expanduser("~/.config/omaamp/cache")
+            os.makedirs(cache_dir, exist_ok=True)
+            knob_scaled = knob_img.scaled(20, 15)
+            self.knob_path = os.path.join(cache_dir, f"knob_{os.path.basename(self.filepath or 'skin')}.png")
+            knob_scaled.save(self.knob_path)
+        else:
+            self.knob_path = None
+
     def _extract_theme_colors(self):
         main_img = self.bitmaps.get('main')
         

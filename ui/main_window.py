@@ -384,16 +384,37 @@ class MainWindow(QWidget):
         trough = self.theme_mgr.hex("slider_trough", "#0a0a0e")
         thumb = self.theme_mgr.hex("slider_thumb", "#5a5d72")
 
-        # Toggle between Skinned Canvas Deck and Vector Deck
-        is_skinned = (self.theme_mgr.active_skin is not None)
-        self.skinned_deck_container.setVisible(is_skinned)
-        self.vector_deck_container.setVisible(not is_skinned)
+        # Always use the responsive tile-optimized deck engine for all skins and themes
+        self.skinned_deck_container.setVisible(False)
+        self.vector_deck_container.setVisible(True)
 
         # Allow flexible tiling in Hyprland and standard window managers
         self.setMinimumWidth(280)
         self.setMaximumWidth(16777215)
         self.setMinimumHeight(240)
         self.setMaximumHeight(16777215)
+
+        knob_path = self.theme_mgr.knob_image_path()
+        if knob_path:
+            handle_css = f"""
+                QSlider::handle:horizontal {{
+                    image: url('{knob_path}');
+                    width: 20px;
+                    height: 15px;
+                    margin: -5px 0;
+                    background: transparent;
+                }}
+            """
+        else:
+            handle_css = f"""
+                QSlider::handle:horizontal {{
+                    background: {thumb};
+                    width: 12px;
+                    margin: -4px 0;
+                    border-radius: 2px;
+                    border: 1px solid {border};
+                }}
+            """
 
         self.setStyleSheet(f"""
             MainWindow, QWidget {{
@@ -418,6 +439,7 @@ class MainWindow(QWidget):
                 border-radius: 2px;
                 font-size: 8px;
                 font-weight: bold;
+                padding: 1px 4px;
             }}
             QPushButton:hover {{
                 background-color: {border};
@@ -428,15 +450,10 @@ class MainWindow(QWidget):
             }}
             QSlider::groove:horizontal {{
                 background: {trough};
-                height: 4px;
+                height: 5px;
                 border-radius: 2px;
             }}
-            QSlider::handle:horizontal {{
-                background: {thumb};
-                width: 10px;
-                margin: -4px 0;
-                border-radius: 2px;
-            }}
+            {handle_css}
             QSlider::handle:horizontal:hover {{
                 background: {btn_active};
             }}
@@ -453,7 +470,11 @@ class MainWindow(QWidget):
                 (self.btn_pause, 'btn_pause'),
                 (self.btn_stop, 'btn_stop'),
                 (self.btn_next, 'btn_next'),
-                (self.btn_eject, 'btn_eject')
+                (self.btn_eject, 'btn_eject'),
+                (self.btn_shuffle, 'btn_shuf'),
+                (self.btn_repeat, 'btn_rep'),
+                (self.btn_eq, 'btn_eq'),
+                (self.btn_pl, 'btn_pl')
             ]
             for btn, s_name in btn_map:
                 if s_name in sprites:
@@ -474,3 +495,11 @@ class MainWindow(QWidget):
             self.btn_next.setText(">>|")
             self.btn_eject.setIcon(QIcon())
             self.btn_eject.setText("⏏")
+            self.btn_shuffle.setIcon(QIcon())
+            self.btn_shuffle.setText("SHUF")
+            self.btn_repeat.setIcon(QIcon())
+            self.btn_repeat.setText("REP")
+            self.btn_eq.setIcon(QIcon())
+            self.btn_eq.setText("EQ")
+            self.btn_pl.setIcon(QIcon())
+            self.btn_pl.setText("PL")

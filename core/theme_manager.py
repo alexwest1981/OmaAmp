@@ -156,3 +156,8 @@ class ThemeManager(QObject):
         if self.active_skin and name in self.active_skin.sprites:
             return self.active_skin.sprites[name]
         return None
+
+    def knob_image_path(self):
+        if self.active_skin and hasattr(self.active_skin, 'knob_path') and self.active_skin.knob_path and os.path.exists(self.active_skin.knob_path):
+            return self.active_skin.knob_path
+        return None
