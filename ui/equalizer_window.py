@@ -3,7 +3,6 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPainter, QPen, QColor, QFont
-from ui.skinned_equalizer import SkinnedEqualizerWidget
 
 PRESETS = {
     "Flat": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -71,24 +70,8 @@ class EqualizerWindow(QWidget):
 
     def init_ui(self):
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
-
-        # 1. Skinned Canvas Equalizer (100% Authentic Winamp EQ)
-        self.skinned_eq_container = QWidget()
-        skinned_layout = QVBoxLayout(self.skinned_eq_container)
-        skinned_layout.setContentsMargins(0, 0, 0, 0)
-        self.skinned_eq = SkinnedEqualizerWidget(self.theme_mgr, self)
-        self.skinned_eq.eq_changed.connect(self._on_skinned_eq_changed)
-        skinned_layout.addWidget(self.skinned_eq)
-        main_layout.addWidget(self.skinned_eq_container)
-
-        # 2. Vector Equalizer Container
-        self.vector_eq_container = QWidget()
-        vector_layout = QVBoxLayout(self.vector_eq_container)
-        vector_layout.setContentsMargins(6, 6, 6, 6)
-        vector_layout.setSpacing(4)
-        main_layout.addWidget(self.vector_eq_container)
+        main_layout.setContentsMargins(6, 6, 6, 6)
+        main_layout.setSpacing(4)
 
         # Title / Preset Bar
         top_row = QHBoxLayout()
@@ -118,11 +101,11 @@ class EqualizerWindow(QWidget):
         self.combo_presets.currentTextChanged.connect(self._on_preset_selected)
         top_row.addWidget(self.combo_presets)
 
-        vector_layout.addLayout(top_row)
+        main_layout.addLayout(top_row)
 
         # Curve display
         self.curve_view = EqCurveWidget(self.theme_mgr, self.sliders, self)
-        vector_layout.addWidget(self.curve_view)
+        main_layout.addWidget(self.curve_view)
 
         # Sliders Row
         sliders_row = QHBoxLayout()
@@ -164,12 +147,7 @@ class EqualizerWindow(QWidget):
             sliders_row.addLayout(col)
 
         self.curve_view.sliders = self.sliders
-        vector_layout.addLayout(sliders_row)
-
-    def _on_skinned_eq_changed(self, bands, preamp):
-        self.preamp_val = preamp
-        self.eq_enabled = self.skinned_eq.eq_enabled
-        self.eq_changed.emit(bands, preamp)
+        main_layout.addLayout(sliders_row)
 
     def _toggle_on(self):
         self.eq_enabled = self.btn_on.isChecked()
@@ -197,10 +175,6 @@ class EqualizerWindow(QWidget):
         self.eq_changed.emit(bands, preamp)
 
     def apply_theme(self):
-        is_skinned = (self.theme_mgr.active_skin is not None)
-        self.skinned_eq_container.setVisible(is_skinned)
-        self.vector_eq_container.setVisible(not is_skinned)
-        
         bg = self.theme_mgr.hex("chassis_bg", "#282932")
         border = self.theme_mgr.hex("chassis_border", "#4e5062")
         btn_bg = self.theme_mgr.hex("button_bg", "#323440")

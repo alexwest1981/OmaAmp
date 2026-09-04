@@ -332,24 +332,21 @@ class PlaylistWindow(QWidget):
                     orig_pix = sprites[s_name][0]
                     btn.setIcon(QIcon(orig_pix))
                     btn.setIconSize(QSize(orig_pix.width(), orig_pix.height()))
-                    btn.setFixedSize(orig_pix.width() + 4, orig_pix.height() + 4)
+                    btn.setFixedSize(orig_pix.width(), orig_pix.height())
+                    btn.setStyleSheet("border: none; padding: 0px; background: transparent;")
                     btn.setText("")
         else:
-            self.btn_pl_add.setIcon(QIcon())
-            self.btn_pl_add.setText("+ ADD")
-            self.btn_pl_add.setFixedHeight(20)
-            self.btn_pl_rem.setIcon(QIcon())
-            self.btn_pl_rem.setText("- REM")
-            self.btn_pl_rem.setFixedHeight(20)
-            self.btn_pl_sel.setIcon(QIcon())
-            self.btn_pl_sel.setText("SEL")
-            self.btn_pl_sel.setFixedHeight(20)
-            self.btn_pl_misc.setIcon(QIcon())
-            self.btn_pl_misc.setText("MISC")
-            self.btn_pl_misc.setFixedHeight(20)
-            self.btn_pl_list.setIcon(QIcon())
-            self.btn_pl_list.setText("LIST")
-            self.btn_pl_list.setFixedHeight(20)
+            for btn, txt in [
+                (self.btn_pl_add, "+ ADD"),
+                (self.btn_pl_rem, "- REM"),
+                (self.btn_pl_sel, "SEL"),
+                (self.btn_pl_misc, "MISC"),
+                (self.btn_pl_list, "LIST")
+            ]:
+                btn.setIcon(QIcon())
+                btn.setText(txt)
+                btn.setFixedHeight(20)
+                btn.setStyleSheet("")
 
         self.setStyleSheet(f"""
             PlaylistWindow, QWidget {{

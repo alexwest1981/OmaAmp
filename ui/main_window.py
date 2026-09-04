@@ -12,7 +12,6 @@ from ui.visualizer_studio import VisualizerStudio
 from ui.theme_dialog import ThemeDialog
 from ui.equalizer_window import EqualizerWindow
 from ui.playlist_window import PlaylistWindow
-from ui.skinned_player import SkinnedPlayerWidget
 
 class MainWindow(QWidget):
     def __init__(self, audio_engine, theme_mgr, config_mgr, vis_gen=None):
@@ -75,33 +74,15 @@ class MainWindow(QWidget):
         # 1. MAIN PLAYER DECK (Classic Winamp Chassis)
         # =====================================================================
         self.player_frame = QFrame()
-        self.player_frame.setFrameShape(QFrame.Shape.NoFrame)
+        self.player_frame.setFrameShape(QFrame.Shape.StyledPanel)
         self.player_frame.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         player_layout = QVBoxLayout(self.player_frame)
-        player_layout.setContentsMargins(0, 0, 0, 0)
-        player_layout.setSpacing(0)
-        
-        # 1. Authentic Winamp Skinned Canvas Container
-        self.skinned_deck_container = QWidget()
-        skinned_layout = QVBoxLayout(self.skinned_deck_container)
-        skinned_layout.setContentsMargins(0, 0, 0, 0)
-        self.skinned_player = SkinnedPlayerWidget(self.audio, self.theme_mgr, self)
-        self.skinned_player.open_skin_dialog.connect(self._open_theme_dialog)
-        self.skinned_player.open_vis_studio.connect(self._open_vis_studio)
-        self.skinned_player.toggle_eq.connect(self._toggle_eq)
-        self.skinned_player.toggle_pl.connect(self._toggle_pl)
-        skinned_layout.addWidget(self.skinned_player)
-        player_layout.addWidget(self.skinned_deck_container)
-
-        # 2. Vector / Responsive Deck Container (for pure JSON themes)
-        self.vector_deck_container = QWidget()
-        vector_layout = QVBoxLayout(self.vector_deck_container)
-        vector_layout.setContentsMargins(0, 0, 0, 0)
-        vector_layout.setSpacing(4)
-        player_layout.addWidget(self.vector_deck_container)
+        player_layout.setContentsMargins(6, 4, 6, 6)
+        player_layout.setSpacing(4)
 
         # Title / Skin Bar
         title_row = QHBoxLayout()
+        title_row.setContentsMargins(0, 0, 0, 0)
         title_row.setSpacing(4)
 
         self.lbl_title = QLabel("OMAAMP - WINAMP 2.91 CLASSIC")
@@ -116,80 +97,89 @@ class MainWindow(QWidget):
         self.btn_skin.clicked.connect(self._open_theme_dialog)
         title_row.addWidget(self.btn_skin)
 
-        vector_layout.addLayout(title_row)
+        self.btn_vis = QPushButton("VIS")
+        self.btn_vis.setFixedSize(32, 18)
+        self.btn_vis.setToolTip("Open Visualizer Studio (Fullscreen / Multi-mode)")
+        self.btn_vis.clicked.connect(self._open_vis_studio)
+        title_row.addWidget(self.btn_vis)
 
-        # Scrolling Song Title Marquee
-        self.marquee = MarqueeDisplay(self.theme_mgr, self)
-        vector_layout.addWidget(self.marquee)
+        player_layout.addLayout(title_row)
 
-        # 7-Segment LED Time (Left) + Spectrum Visualizer (Right)
-        deck_mid = QHBoxLayout()
-        deck_mid.setSpacing(4)
+        # Widescreen LCD Container (Clock + Marquee + Spectrum Visualizer)
+        self.lcd_container = QFrame()
+        self.lcd_container.setObjectName("LcdContainer")
+        lcd_layout = QHBoxLayout(self.lcd_container)
+        lcd_layout.setContentsMargins(4, 2, 4, 2)
+        lcd_layout.setSpacing(6)
 
+        # 1. 7-Segment LED Time Display
         self.lcd = LcdDisplay(self.theme_mgr, self)
-        deck_mid.addWidget(self.lcd)
+        self.lcd.setFixedWidth(130)
+        self.lcd.setFixedHeight(40)
+        lcd_layout.addWidget(self.lcd)
 
+        # 2. Scrolling Song Title Marquee
+        self.marquee = MarqueeDisplay(self.theme_mgr, self)
+        self.marquee.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.marquee.setFixedHeight(40)
+        lcd_layout.addWidget(self.marquee)
+
+        # 3. Spectrum Visualizer
         self.vis = VisualizerWidget(self.theme_mgr, self.audio, self)
-        self.vis.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.vis.setFixedHeight(42)
-        deck_mid.addWidget(self.vis)
+        self.vis.setMinimumWidth(80)
+        self.vis.setMaximumWidth(280)
+        self.vis.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        self.vis.setFixedHeight(40)
+        lcd_layout.addWidget(self.vis)
 
-        vector_layout.addLayout(deck_mid)
+        player_layout.addWidget(self.lcd_container)
 
-        # Sliders Row (Volume, Balance, Position Seek)
+        # Sliders Row (Volume + Balance + Full-Width Seek Bar)
         sliders_layout = QHBoxLayout()
-        sliders_layout.setSpacing(4)
+        sliders_layout.setContentsMargins(0, 0, 0, 0)
+        sliders_layout.setSpacing(6)
 
-        # Volume Slider
-        v_col = QVBoxLayout()
-        v_col.setSpacing(1)
+        lbl_v = QLabel("VOL")
+        lbl_v.setFont(QFont("Monospace", 6, QFont.Weight.Bold))
+        sliders_layout.addWidget(lbl_v)
+
         self.slider_vol = QSlider(Qt.Orientation.Horizontal)
         self.slider_vol.setRange(0, 100)
         self.slider_vol.setValue(self.config.get("volume", 80))
-        self.slider_vol.setFixedWidth(56)
+        self.slider_vol.setFixedWidth(64)
         self.slider_vol.setFixedHeight(12)
         self.slider_vol.valueChanged.connect(self._on_vol_changed)
-        lbl_v = QLabel("VOL")
-        lbl_v.setFont(QFont("Monospace", 6))
-        lbl_v.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        v_col.addWidget(self.slider_vol)
-        v_col.addWidget(lbl_v)
-        sliders_layout.addLayout(v_col)
+        sliders_layout.addWidget(self.slider_vol)
 
-        # Pan / Balance Slider
-        b_col = QVBoxLayout()
-        b_col.setSpacing(1)
+        lbl_b = QLabel("BAL")
+        lbl_b.setFont(QFont("Monospace", 6, QFont.Weight.Bold))
+        sliders_layout.addWidget(lbl_b)
+
         self.slider_pan = QSlider(Qt.Orientation.Horizontal)
         self.slider_pan.setRange(-50, 50)
         self.slider_pan.setValue(0)
-        self.slider_pan.setFixedWidth(40)
+        self.slider_pan.setFixedWidth(44)
         self.slider_pan.setFixedHeight(12)
-        lbl_b = QLabel("BAL")
-        lbl_b.setFont(QFont("Monospace", 6))
-        lbl_b.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        b_col.addWidget(self.slider_pan)
-        b_col.addWidget(lbl_b)
-        sliders_layout.addLayout(b_col)
+        self.slider_pan.valueChanged.connect(self._on_pan_changed)
+        sliders_layout.addWidget(self.slider_pan)
 
-        # Seek Bar
-        s_col = QVBoxLayout()
-        s_col.setSpacing(1)
+        lbl_s = QLabel("SEEK")
+        lbl_s.setFont(QFont("Monospace", 6, QFont.Weight.Bold))
+        sliders_layout.addWidget(lbl_s)
+
         self.slider_seek = QSlider(Qt.Orientation.Horizontal)
         self.slider_seek.setRange(0, 1000)
         self.slider_seek.setValue(0)
         self.slider_seek.setFixedHeight(12)
+        self.slider_seek.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.slider_seek.sliderMoved.connect(self._on_seek_moved)
-        lbl_s = QLabel("POSITION")
-        lbl_s.setFont(QFont("Monospace", 6))
-        lbl_s.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        s_col.addWidget(self.slider_seek)
-        s_col.addWidget(lbl_s)
-        sliders_layout.addLayout(s_col)
+        sliders_layout.addWidget(self.slider_seek)
 
-        vector_layout.addLayout(sliders_layout)
+        player_layout.addLayout(sliders_layout)
 
         # Playback Buttons + Modes + EQ/PL Toggles
         btn_row = QHBoxLayout()
+        btn_row.setContentsMargins(0, 0, 0, 0)
         btn_row.setSpacing(2)
 
         self.btn_prev = QPushButton("|<<")
@@ -226,36 +216,30 @@ class MainWindow(QWidget):
 
         self.btn_shuffle = QPushButton("SHUF")
         self.btn_shuffle.setCheckable(True)
-        self.btn_shuffle.setFixedSize(36, 22)
+        self.btn_shuffle.setFixedSize(48, 22)
         self.btn_shuffle.clicked.connect(self._toggle_shuffle)
         btn_row.addWidget(self.btn_shuffle)
 
         self.btn_repeat = QPushButton("REP")
         self.btn_repeat.setCheckable(True)
         self.btn_repeat.setChecked(True)
-        self.btn_repeat.setFixedSize(32, 22)
+        self.btn_repeat.setFixedSize(36, 22)
         self.btn_repeat.clicked.connect(self._toggle_repeat)
         btn_row.addWidget(self.btn_repeat)
 
         self.btn_eq = QPushButton("EQ")
         self.btn_eq.setCheckable(True)
-        self.btn_eq.setFixedSize(26, 22)
+        self.btn_eq.setFixedSize(28, 22)
         self.btn_eq.clicked.connect(self._toggle_eq)
         btn_row.addWidget(self.btn_eq)
 
         self.btn_pl = QPushButton("PL")
         self.btn_pl.setCheckable(True)
-        self.btn_pl.setFixedSize(26, 22)
+        self.btn_pl.setFixedSize(28, 22)
         self.btn_pl.clicked.connect(self._toggle_pl)
         btn_row.addWidget(self.btn_pl)
 
-        self.btn_vis = QPushButton("VIS")
-        self.btn_vis.setFixedSize(28, 22)
-        self.btn_vis.setToolTip("Open Visualizer Studio (Fullscreen / Multi-mode)")
-        self.btn_vis.clicked.connect(self._open_vis_studio)
-        btn_row.addWidget(self.btn_vis)
-
-        vector_layout.addLayout(btn_row)
+        player_layout.addLayout(btn_row)
         root_layout.addWidget(self.player_frame)
 
         # =====================================================================
@@ -284,19 +268,52 @@ class MainWindow(QWidget):
         show = self.btn_eq.isChecked()
         self.eq_frame.setVisible(show)
         self.config.set("show_eq", show)
+        self._update_toggle_icons()
 
     def _toggle_pl(self):
         show = self.btn_pl.isChecked()
         self.pl_frame.setVisible(show)
         self.config.set("show_pl", show)
+        self._update_toggle_icons()
 
     def _toggle_shuffle(self):
         self.audio.shuffle = self.btn_shuffle.isChecked()
         self.config.set("shuffle", self.audio.shuffle)
+        self._update_toggle_icons()
 
     def _toggle_repeat(self):
         self.audio.repeat = self.btn_repeat.isChecked()
         self.config.set("repeat", self.audio.repeat)
+        self._update_toggle_icons()
+
+    def _update_toggle_icons(self):
+        skin = self.theme_mgr.active_skin
+        if skin and skin.sprites:
+            sprites = skin.sprites
+            if 'btn_shuf' in sprites:
+                pix = sprites['btn_shuf'][1 if self.btn_shuffle.isChecked() else 0]
+                self.btn_shuffle.setIcon(QIcon(pix))
+                self.btn_shuffle.setIconSize(QSize(pix.width(), pix.height()))
+                self.btn_shuffle.setFixedSize(pix.width(), pix.height())
+                self.btn_shuffle.setStyleSheet("border: none; padding: 0px; background: transparent;")
+            if 'btn_rep' in sprites:
+                pix = sprites['btn_rep'][1 if self.btn_repeat.isChecked() else 0]
+                self.btn_repeat.setIcon(QIcon(pix))
+                self.btn_repeat.setIconSize(QSize(pix.width(), pix.height()))
+                self.btn_repeat.setFixedSize(pix.width(), pix.height())
+                self.btn_repeat.setStyleSheet("border: none; padding: 0px; background: transparent;")
+            if 'btn_eq' in sprites:
+                pix = sprites['btn_eq'][1 if self.btn_eq.isChecked() else 0]
+                self.btn_eq.setIcon(QIcon(pix))
+                self.btn_eq.setIconSize(QSize(pix.width(), pix.height()))
+                self.btn_eq.setFixedSize(pix.width(), pix.height())
+                self.btn_eq.setStyleSheet("border: none; padding: 0px; background: transparent;")
+            if 'btn_pl' in sprites:
+                pix = sprites['btn_pl'][1 if self.btn_pl.isChecked() else 0]
+                self.btn_pl.setIcon(QIcon(pix))
+                self.btn_pl.setIconSize(QSize(pix.width(), pix.height()))
+                self.btn_pl.setFixedSize(pix.width(), pix.height())
+                self.btn_pl.setStyleSheet("border: none; padding: 0px; background: transparent;")
 
     def _on_vol_changed(self, val):
         self.audio.set_volume(val)
@@ -383,10 +400,6 @@ class MainWindow(QWidget):
         title_text = self.theme_mgr.hex("titlebar_text", "#00e5ff")
         trough = self.theme_mgr.hex("slider_trough", "#0a0a0e")
         thumb = self.theme_mgr.hex("slider_thumb", "#5a5d72")
-
-        is_skinned = (self.theme_mgr.active_skin is not None)
-        self.skinned_deck_container.setVisible(is_skinned)
-        self.vector_deck_container.setVisible(not is_skinned)
 
         # Allow flexible tiling in Hyprland and standard window managers
         self.setMinimumWidth(280)
@@ -481,25 +494,26 @@ class MainWindow(QWidget):
                     icon_pix = sprites[s_name][0]
                     btn.setIcon(QIcon(icon_pix))
                     btn.setIconSize(QSize(icon_pix.width(), icon_pix.height()))
+                    btn.setFixedSize(icon_pix.width(), icon_pix.height())
+                    btn.setStyleSheet("border: none; padding: 0px; background: transparent;")
                     btn.setText("")
         else:
-            self.btn_prev.setIcon(QIcon())
-            self.btn_prev.setText("|<<")
-            self.btn_play.setIcon(QIcon())
-            self.btn_play.setText("▶")
-            self.btn_pause.setIcon(QIcon())
-            self.btn_pause.setText("❚❚")
-            self.btn_stop.setIcon(QIcon())
-            self.btn_stop.setText("■")
-            self.btn_next.setIcon(QIcon())
-            self.btn_next.setText(">>|")
-            self.btn_eject.setIcon(QIcon())
-            self.btn_eject.setText("⏏")
-            self.btn_shuffle.setIcon(QIcon())
-            self.btn_shuffle.setText("SHUF")
-            self.btn_repeat.setIcon(QIcon())
-            self.btn_repeat.setText("REP")
-            self.btn_eq.setIcon(QIcon())
-            self.btn_eq.setText("EQ")
-            self.btn_pl.setIcon(QIcon())
-            self.btn_pl.setText("PL")
+            transport_btns = [
+                (self.btn_prev, "|<<", 28, 22),
+                (self.btn_play, "▶", 28, 22),
+                (self.btn_pause, "❚❚", 28, 22),
+                (self.btn_stop, "■", 28, 22),
+                (self.btn_next, ">>|", 28, 22),
+                (self.btn_eject, "⏏", 24, 22),
+                (self.btn_shuffle, "SHUF", 48, 22),
+                (self.btn_repeat, "REP", 36, 22),
+                (self.btn_eq, "EQ", 28, 22),
+                (self.btn_pl, "PL", 28, 22),
+            ]
+            for btn, txt, w, h in transport_btns:
+                btn.setIcon(QIcon())
+                btn.setText(txt)
+                btn.setFixedSize(w, h)
+                btn.setStyleSheet("")
+
+        self._update_toggle_icons()
