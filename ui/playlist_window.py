@@ -348,9 +348,13 @@ class PlaylistWindow(QWidget):
                 btn.setFixedHeight(20)
                 btn.setStyleSheet("")
 
+        chassis_pattern = self.theme_mgr.get_texture_path("chassis_pattern")
+        titlebar_pattern = self.theme_mgr.get_texture_path("titlebar_repeat")
+        pl_deck_bg_css = f"background-image: url('{chassis_pattern}'); background-repeat: repeat;" if chassis_pattern else f"background-color: {bg};"
+
         self.setStyleSheet(f"""
             PlaylistWindow, QWidget {{
-                background-color: {bg};
+                {pl_deck_bg_css}
                 color: {btn_text};
                 font-family: 'Monospace';
             }}
@@ -361,6 +365,7 @@ class PlaylistWindow(QWidget):
             }}
             QLineEdit {{
                 background-color: {pl_bg};
+                background-image: none;
                 color: {pl_text};
                 border: 1px solid {border};
                 border-radius: 2px;
@@ -369,6 +374,7 @@ class PlaylistWindow(QWidget):
             }}
             QListWidget {{
                 background-color: {pl_bg};
+                background-image: none;
                 color: {pl_text};
                 border: 1px solid {border};
                 border-radius: 3px;
@@ -390,6 +396,7 @@ class PlaylistWindow(QWidget):
             }}
             QPushButton {{
                 background-color: {btn_bg};
+                background-image: none;
                 color: {btn_text};
                 border: 1px solid {border};
                 border-radius: 2px;
@@ -406,6 +413,7 @@ class PlaylistWindow(QWidget):
             }}
             QMenu {{
                 background-color: {bg};
+                background-image: none;
                 color: {btn_text};
                 border: 1px solid {border};
                 font-size: 9px;
@@ -419,12 +427,14 @@ class PlaylistWindow(QWidget):
             }}
             QScrollBar:vertical {{
                 background: {pl_bg};
+                background-image: none;
                 width: 12px;
                 margin: 0px;
                 border: 1px solid {border};
             }}
             QScrollBar::handle:vertical {{
                 background: {btn_bg};
+                background-image: none;
                 min-height: 20px;
                 border-radius: 2px;
             }}
@@ -438,6 +448,9 @@ class PlaylistWindow(QWidget):
                 background: transparent;
             }}
         """)
-        self.lbl_title.setStyleSheet(f"color: {title_text};")
+        if titlebar_pattern:
+            self.lbl_title.setStyleSheet(f"color: {title_text}; background-image: url('{titlebar_pattern}'); background-repeat: repeat; padding: 2px 6px; border-radius: 2px;")
+        else:
+            self.lbl_title.setStyleSheet(f"color: {title_text}; background: transparent;")
         self.refresh_list()
 

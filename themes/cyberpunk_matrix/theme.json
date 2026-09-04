@@ -1,0 +1,41 @@
+{
+  "id": "cyberpunk_matrix",
+  "name": "\u26a1 Cyberpunk Matrix 2077",
+  "author": "OmaAmp Studio",
+  "version": "2.0.0",
+  "description": "High-tech neon cyan and magenta scanlines with glowing carbon textures.",
+  "homepage": "https://github.com/alexwest1981/OmaAmp",
+  "colors": {
+    "chassis_bg": "#090a12",
+    "chassis_border": "#00e5ff",
+    "titlebar_bg": "#0d0e1a",
+    "titlebar_text": "#00f0ff",
+    "lcd_bg": "#05060d",
+    "lcd_text": "#00f0ff",
+    "lcd_text_dim": "#003844",
+    "lcd_kbps": "#ff0055",
+    "vis_bg": "#05060d",
+    "vis_bars_low": "#00f0ff",
+    "vis_bars_mid": "#ff0077",
+    "vis_bars_high": "#ffe600",
+    "vis_peaks": "#ffffff",
+    "vis_oscilloscope": "#00f0ff",
+    "button_bg": "#121424",
+    "button_border": "#00a3cc",
+    "button_text": "#00f0ff",
+    "button_active": "#ff0055",
+    "slider_trough": "#05060d",
+    "slider_thumb": "#00f0ff",
+    "playlist_bg": "#07080f",
+    "playlist_text": "#00f0ff",
+    "playlist_selected_bg": "#330022",
+    "playlist_selected_text": "#ffffff",
+    "playlist_playing_text": "#ff0077",
+    "playlist_playing_bg": "#1a0033"
+  },
+  "textures": {
+    "chassis_pattern": "textures/carbon_grid.png",
+    "titlebar_repeat": "textures/titlebar_repeat.png",
+    "knob": "textures/neon_knob.png"
+  }
+}

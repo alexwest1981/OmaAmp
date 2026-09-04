@@ -1,0 +1,40 @@
+{
+  "id": "brushed_titanium",
+  "name": "\u2699\ufe0f Brushed Titanium Deck",
+  "author": "Audiophile Studio",
+  "version": "2.0.0",
+  "description": "Premium industrial machined aluminum with textured hardware controls.",
+  "homepage": "https://github.com/alexwest1981/OmaAmp",
+  "colors": {
+    "chassis_bg": "#2b2c34",
+    "chassis_border": "#5a5d6e",
+    "titlebar_bg": "#202127",
+    "titlebar_text": "#e0e2ec",
+    "lcd_bg": "#0f1118",
+    "lcd_text": "#00ff66",
+    "lcd_text_dim": "#00441a",
+    "lcd_kbps": "#00dd55",
+    "vis_bg": "#0f1118",
+    "vis_bars_low": "#00ff66",
+    "vis_bars_mid": "#ffbb00",
+    "vis_bars_high": "#ff3322",
+    "vis_peaks": "#ffffff",
+    "vis_oscilloscope": "#00ff88",
+    "button_bg": "#383a46",
+    "button_border": "#55586a",
+    "button_text": "#e0e2ec",
+    "button_active": "#00ff66",
+    "slider_trough": "#0a0a0f",
+    "slider_thumb": "#c8cad4",
+    "playlist_bg": "#12131a",
+    "playlist_text": "#d4d8e8",
+    "playlist_selected_bg": "#2a3248",
+    "playlist_selected_text": "#ffffff",
+    "playlist_playing_text": "#00ff66",
+    "playlist_playing_bg": "#182820"
+  },
+  "textures": {
+    "chassis_pattern": "textures/brushed_metal.png",
+    "knob": "textures/machined_knob.png"
+  }
+}

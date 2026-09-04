@@ -429,6 +429,10 @@ class MainWindow(QWidget):
                 }}
             """
 
+        chassis_pattern = self.theme_mgr.get_texture_path("chassis_pattern")
+        titlebar_pattern = self.theme_mgr.get_texture_path("titlebar_repeat")
+        frame_bg_css = f"background-image: url('{chassis_pattern}'); background-repeat: repeat;" if chassis_pattern else f"background-color: {bg};"
+
         self.setStyleSheet(f"""
             MainWindow, QWidget {{
                 background-color: {bg};
@@ -436,9 +440,13 @@ class MainWindow(QWidget):
                 font-family: 'Monospace';
             }}
             QFrame {{
-                background-color: {bg};
+                {frame_bg_css}
                 border: 1px solid {border};
                 border-radius: 4px;
+            }}
+            QFrame#LcdContainer {{
+                background-image: none;
+                background-color: {self.theme_mgr.hex("lcd_bg", "#000000")};
             }}
             QLabel {{
                 color: {btn_text};
@@ -471,7 +479,10 @@ class MainWindow(QWidget):
                 background: {btn_active};
             }}
         """)
-        self.lbl_title.setStyleSheet(f"color: {title_text};")
+        if titlebar_pattern:
+            self.lbl_title.setStyleSheet(f"color: {title_text}; background-image: url('{titlebar_pattern}'); background-repeat: repeat; padding: 2px 6px; border-radius: 2px;")
+        else:
+            self.lbl_title.setStyleSheet(f"color: {title_text}; background: transparent;")
 
         # Apply authentic Winamp button sprites if skin provides them
         skin = self.theme_mgr.active_skin

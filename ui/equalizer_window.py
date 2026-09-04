@@ -209,14 +209,19 @@ class EqualizerWindow(QWidget):
                 }}
             """
 
+        chassis_pattern = self.theme_mgr.get_texture_path("chassis_pattern")
+        titlebar_pattern = self.theme_mgr.get_texture_path("titlebar_repeat")
+        eq_bg_css = f"background-image: url('{chassis_pattern}'); background-repeat: repeat;" if chassis_pattern else f"background-color: {bg};"
+
         self.setStyleSheet(f"""
             EqualizerWindow, QWidget {{
-                background-color: {bg};
+                {eq_bg_css}
                 color: {btn_text};
                 font-family: 'Monospace';
             }}
             QPushButton {{
                 background-color: {btn_bg};
+                background-image: none;
                 color: {btn_text};
                 border: 1px solid {border};
                 border-radius: 2px;
@@ -230,6 +235,7 @@ class EqualizerWindow(QWidget):
             }}
             QComboBox {{
                 background-color: {btn_bg};
+                background-image: none;
                 color: {btn_text};
                 border: 1px solid {border};
                 border-radius: 2px;
@@ -246,4 +252,7 @@ class EqualizerWindow(QWidget):
                 background: {btn_active};
             }}
         """)
-        self.lbl_title.setStyleSheet(f"color: {title_text};")
+        if titlebar_pattern:
+            self.lbl_title.setStyleSheet(f"color: {title_text}; background-image: url('{titlebar_pattern}'); background-repeat: repeat; padding: 2px 6px; border-radius: 2px;")
+        else:
+            self.lbl_title.setStyleSheet(f"color: {title_text}; background: transparent;")
