@@ -13,6 +13,7 @@ class AudioAnalyzer:
         self.pcm_right = None
         self.sample_rate = 44100
         self.is_loaded = False
+        self.is_live_stream = False
         self._lock = threading.Lock()
 
         # FFT parameters
@@ -52,11 +53,39 @@ class AudioAnalyzer:
             m = (self.freqs >= self.band_edges[b]) & (self.freqs < self.band_edges[b+1])
             self.band_masks.append(m)
 
+    def feed_live_chunk(self, chunk):
+        """Feeds a real-time chunk of audio from online radio or YouTube streams."""
+        if chunk is None or len(chunk) == 0:
+            return
+        with self._lock:
+            self.sample_rate = 44100
+            if chunk.ndim == 2:
+                l_chan = chunk[:, 0]
+                r_chan = chunk[:, 1]
+                mono = (l_chan + r_chan) * 0.5
+            else:
+                l_chan = chunk
+                r_chan = chunk
+                mono = chunk
+
+            if self.pcm_mono is None or not self.is_live_stream:
+                self.pcm_mono = mono
+                self.pcm_left = l_chan
+                self.pcm_right = r_chan
+            else:
+                self.pcm_mono = np.concatenate([self.pcm_mono, mono])[-8192:]
+                self.pcm_left = np.concatenate([self.pcm_left, l_chan])[-8192:]
+                self.pcm_right = np.concatenate([self.pcm_right, r_chan])[-8192:]
+
+            self.is_live_stream = True
+            self.is_loaded = True
+
     def load_track(self, filepath):
-        if filepath == self.current_filepath and self.is_loaded:
+        if filepath == self.current_filepath and self.is_loaded and not self.is_live_stream:
             return
         self.current_filepath = filepath
         self.is_loaded = False
+        self.is_live_stream = False
         t = threading.Thread(target=self._decode_in_background, args=(filepath,), daemon=True)
         t.start()
 
@@ -122,13 +151,20 @@ class AudioAnalyzer:
             return self.bars, self.peaks
 
         with self._lock:
-            idx = int(current_position * self.sample_rate)
-            total_samples = len(self.pcm_mono)
-            if idx < 0 or idx >= total_samples:
-                return self.bars, self.peaks
+            if self.is_live_stream:
+                chunk = self.pcm_mono[-self.window_size:] if len(self.pcm_mono) >= self.window_size else self.pcm_mono
+                l_chunk = self.pcm_left[-self.window_size:] if (self.pcm_left is not None and len(self.pcm_left) >= self.window_size) else self.pcm_left
+                r_chunk = self.pcm_right[-self.window_size:] if (self.pcm_right is not None and len(self.pcm_right) >= self.window_size) else self.pcm_right
+            else:
+                idx = int(current_position * self.sample_rate)
+                total_samples = len(self.pcm_mono)
+                if idx < 0 or idx >= total_samples:
+                    return self.bars, self.peaks
 
-            end_idx = min(total_samples, idx + self.window_size)
-            chunk = self.pcm_mono[idx:end_idx]
+                end_idx = min(total_samples, idx + self.window_size)
+                chunk = self.pcm_mono[idx:end_idx]
+                l_chunk = self.pcm_left[idx:end_idx] if self.pcm_left is not None else None
+                r_chunk = self.pcm_right[idx:end_idx] if self.pcm_right is not None else None
 
         if len(chunk) < self.window_size:
             chunk = np.pad(chunk, (0, self.window_size - len(chunk)))
@@ -174,9 +210,7 @@ class AudioAnalyzer:
             self.peaks[i] = max(0.0, min(1.0, self.peaks[i]))
 
         # Calculate True Stereo VU Meter RMS
-        if self.pcm_left is not None and self.pcm_right is not None:
-            l_chunk = self.pcm_left[idx:end_idx]
-            r_chunk = self.pcm_right[idx:end_idx]
+        if l_chunk is not None and r_chunk is not None:
             rms_l = float(np.sqrt(np.mean(l_chunk ** 2))) if len(l_chunk) > 0 else 0.0
             rms_r = float(np.sqrt(np.mean(r_chunk ** 2))) if len(r_chunk) > 0 else 0.0
             
@@ -193,15 +227,18 @@ class AudioAnalyzer:
             return np.zeros(num_points, dtype=np.float32)
 
         with self._lock:
-            idx = int(current_position * self.sample_rate)
-            total = len(self.pcm_mono)
-            if idx < 0 or idx >= total:
-                return np.zeros(num_points, dtype=np.float32)
-
-            # Take slice of raw PCM samples
             step = max(1, int(self.window_size / num_points))
-            slice_end = min(total, idx + num_points * step)
-            samples = self.pcm_mono[idx:slice_end:step]
+            if self.is_live_stream:
+                needed = num_points * step
+                samples = self.pcm_mono[-needed::step] if len(self.pcm_mono) >= needed else self.pcm_mono
+            else:
+                idx = int(current_position * self.sample_rate)
+                total = len(self.pcm_mono)
+                if idx < 0 or idx >= total:
+                    return np.zeros(num_points, dtype=np.float32)
+
+                slice_end = min(total, idx + num_points * step)
+                samples = self.pcm_mono[idx:slice_end:step]
 
         if len(samples) < num_points:
             samples = np.pad(samples, (0, num_points - len(samples)))

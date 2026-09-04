@@ -2,7 +2,7 @@ import os
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
     QPushButton, QLineEdit, QLabel, QFileDialog, QMenu, QAbstractItemView,
-    QSizePolicy
+    QSizePolicy, QInputDialog
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPoint
 from PyQt6.QtGui import QFont, QColor, QIcon, QPixmap, QDragEnterEvent, QDropEvent, QKeyEvent
@@ -109,6 +109,12 @@ class PlaylistWindow(QWidget):
         self.btn_quick_dir.clicked.connect(self._add_dir_dialog)
         bottom_row.addWidget(self.btn_quick_dir)
 
+        self.btn_quick_radio = QPushButton("📻 RADIO")
+        self.btn_quick_radio.setFixedHeight(20)
+        self.btn_quick_radio.setToolTip("Open Online Radio & YouTube Stream Studio")
+        self.btn_quick_radio.clicked.connect(self._open_radio_dialog)
+        bottom_row.addWidget(self.btn_quick_radio)
+
         self.btn_quick_m3u = QPushButton("💾 M3U")
         self.btn_quick_m3u.setFixedHeight(20)
         self.btn_quick_m3u.setToolTip("Save as .m3u playlist")
@@ -126,6 +132,11 @@ class PlaylistWindow(QWidget):
         a_file.triggered.connect(self._add_file_dialog)
         a_dir = menu.addAction("📁 Add Folder of Music...")
         a_dir.triggered.connect(self._add_dir_dialog)
+        menu.addSeparator()
+        a_url = menu.addAction("🌐 Add Online Stream / URL...")
+        a_url.triggered.connect(self._add_url_dialog)
+        a_radio = menu.addAction("📻 Open Radio & YouTube Studio...")
+        a_radio.triggered.connect(self._open_radio_dialog)
         menu.exec(self.btn_pl_add.mapToGlobal(QPoint(0, self.btn_pl_add.height())))
 
     def _show_rem_menu(self):
@@ -196,12 +207,25 @@ class PlaylistWindow(QWidget):
     # Drag & Drop and Dialogs
     # -------------------------------------------------------------------------
     def dragEnterEvent(self, event: QDragEnterEvent):
-        if event.mimeData().hasUrls():
+        if event.mimeData().hasUrls() or event.mimeData().hasText():
             event.acceptProposedAction()
 
     def dropEvent(self, event: QDropEvent):
         urls = event.mimeData().urls()
-        paths = [u.toLocalFile() for u in urls if u.isLocalFile()]
+        paths = []
+        for u in urls:
+            if u.isLocalFile():
+                paths.append(u.toLocalFile())
+            else:
+                raw_url = u.toString()
+                if raw_url:
+                    paths.append(raw_url)
+
+        if not urls and event.mimeData().hasText():
+            text = event.mimeData().text().strip()
+            if text.startswith("http://") or text.startswith("https://"):
+                paths.append(text)
+
         if paths:
             self.audio.add_files(paths)
             event.acceptProposedAction()
@@ -212,10 +236,23 @@ class PlaylistWindow(QWidget):
         else:
             super().keyPressEvent(event)
 
+    def _open_radio_dialog(self):
+        from ui.radio_dialog import RadioDialog
+        dlg = RadioDialog(self.audio, self.theme_mgr, self)
+        dlg.exec()
+
+    def _add_url_dialog(self):
+        url, ok = QInputDialog.getText(
+            self, "Add Online Stream / Radio URL",
+            "Enter Stream URL (e.g. http://ice1.somafm.com/groovesalad-128-mp3 or YouTube URL):"
+        )
+        if ok and url.strip():
+            self.audio.add_files([url.strip()])
+
     def _add_file_dialog(self):
         files, _ = QFileDialog.getOpenFileNames(
             self, "Add Audio Files", "",
-            "Audio Files (*.mp3 *.flac *.ogg *.wav *.m4a *.aac *.opus *.mod *.xm *.s3m *.it);;All Files (*)"
+            "Audio Files (*.mp3 *.flac *.ogg *.wav *.m4a *.aac *.opus *.mod *.xm *.s3m *.it *.pls *.m3u *.m3u8);;All Files (*)"
         )
         if files:
             self.audio.add_files(files)

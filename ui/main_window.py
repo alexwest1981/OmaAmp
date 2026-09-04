@@ -91,6 +91,12 @@ class MainWindow(QWidget):
 
         title_row.addStretch()
 
+        self.btn_radio = QPushButton("RADIO")
+        self.btn_radio.setFixedSize(44, 18)
+        self.btn_radio.setToolTip("Open Online Radio & YouTube Stream Studio")
+        self.btn_radio.clicked.connect(self._open_radio_dialog)
+        title_row.addWidget(self.btn_radio)
+
         self.btn_skin = QPushButton("SKIN")
         self.btn_skin.setFixedSize(36, 18)
         self.btn_skin.setToolTip("Change or Create Theme")
@@ -358,6 +364,11 @@ class MainWindow(QWidget):
             self.audio.add_files(files)
             self.audio.play_index(len(self.audio.playlist) - len(files))
 
+    def _open_radio_dialog(self):
+        from ui.radio_dialog import RadioDialog
+        dlg = RadioDialog(self.audio, self.theme_mgr, self)
+        dlg.exec()
+
     def _open_theme_dialog(self):
         dlg = ThemeDialog(self.theme_mgr, self)
         dlg.exec()
@@ -367,7 +378,7 @@ class MainWindow(QWidget):
         studio.exec()
 
     def dragEnterEvent(self, event: QDragEnterEvent):
-        if event.mimeData().hasUrls():
+        if event.mimeData().hasUrls() or event.mimeData().hasText():
             event.acceptProposedAction()
 
     def dropEvent(self, event: QDropEvent):
@@ -382,6 +393,16 @@ class MainWindow(QWidget):
                     self.theme_mgr.import_skin_file(fpath)
                 else:
                     audio_paths.append(fpath)
+            else:
+                raw_url = u.toString()
+                if raw_url:
+                    audio_paths.append(raw_url)
+
+        if not urls and event.mimeData().hasText():
+            text = event.mimeData().text().strip()
+            if text.startswith("http://") or text.startswith("https://"):
+                audio_paths.append(text)
+
         if audio_paths:
             self.audio.add_files(audio_paths)
         event.acceptProposedAction()

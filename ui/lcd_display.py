@@ -26,7 +26,7 @@ class LcdDisplay(QWidget):
 
     def set_track(self, track):
         if track:
-            self.track_title = f"{track.artist} - {track.title}"
+            self.track_title = track.display_name
             self.bitrate = track.bitrate
             self.samplerate = int(track.samplerate / 1000)
             self.channels = track.channels
@@ -164,7 +164,7 @@ class MarqueeDisplay(QWidget):
 
     def set_track(self, track):
         if track:
-            self.track_title = f"{track.artist} - {track.title}"
+            self.track_title = track.display_name
         else:
             self.track_title = "OMAAMP - WINAMP 2.91 CLASSIC FOR LINUX"
         self.scroll_pos = 0
