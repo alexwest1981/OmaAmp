@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QFrame, QSizePolicy
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtGui import QFont, QColor, QIcon, QDragEnterEvent, QDropEvent
 
 from ui.lcd_display import LcdDisplay, MarqueeDisplay
 from ui.visualizer_widget import VisualizerWidget
@@ -14,16 +14,16 @@ from ui.equalizer_window import EqualizerWindow
 from ui.playlist_window import PlaylistWindow
 
 class MainWindow(QWidget):
-    def __init__(self, audio_engine, theme_mgr, config_mgr, vis_gen):
+    def __init__(self, audio_engine, theme_mgr, config_mgr, vis_gen=None):
         super().__init__()
         self.audio = audio_engine
         self.theme_mgr = theme_mgr
         self.config = config_mgr
-        self.vis_gen = vis_gen
 
         self.setWindowTitle("OmaAmp")
         self.setMinimumSize(320, 200)
         self.resize(340, 580)
+        self.setAcceptDrops(True)
 
         # Child modular components (embedded as widget decks)
         self.eq_widget = EqualizerWindow(self.theme_mgr, parent=self)
@@ -328,6 +328,26 @@ class MainWindow(QWidget):
     def _open_vis_studio(self):
         studio = VisualizerStudio(self.theme_mgr, self.audio, self)
         studio.exec()
+
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event: QDropEvent):
+        urls = event.mimeData().urls()
+        audio_paths = []
+        for u in urls:
+            if u.isLocalFile():
+                fpath = u.toLocalFile()
+                ext = os.path.splitext(fpath)[1].lower()
+                if ext in {'.wsz', '.zip'}:
+                    # Import and activate Winamp skin!
+                    self.theme_mgr.import_skin_file(fpath)
+                else:
+                    audio_paths.append(fpath)
+        if audio_paths:
+            self.audio.add_files(audio_paths)
+        event.acceptProposedAction()
 
     def closeEvent(self, event):
         self.config.set("volume", self.slider_vol.value())

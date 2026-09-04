@@ -41,13 +41,12 @@ Featuring a tileable responsive layout, real-time FFT spectrum analyzer / PCM os
   * Automatic state save and restore on application restart (`~/.config/omaamp/playlist.json`).
   * `💾 M3U` button to export and import standard `.m3u` playlists.
 
-* **🎨 Custom Themes & Skin Engine:**
-  * Comes with 4 built-in themes:
-    1. **Classic Retro Winamp:** Iconic gunmetal chassis with green LED phosphor.
-    2. **Modern Obsidian & Cyan:** Sleek obsidian surfaces with high-contrast cyan glow.
-    3. **Cyberpunk Neon 2077:** Hot pink, neon cyan, and deep purple.
-    4. **Amber Phosphor CRT:** Vintage monochrome amber terminal feel.
-  * **Built-in Theme Editor:** Click the **`SKIN`** button in the titlebar to switch themes in real-time or click **`🎨 Create / Edit Custom Theme`** to customize any color and save directly into `~/.config/omaamp/themes/`!
+* **🎨 Winamp 2.x Skin Engine (`.wsz` / `.zip`) & Custom Themes:**
+  * **Direct `.wsz` Winamp Skin Support:** Drag & drop any `.wsz` or `.zip` skin downloaded from the web directly into OmaAmp!
+  * **65,000+ Classic Skins Compatible:** Instant 1-click access to the [Winamp Skin Museum](https://skins.webamp.org/) directly from the `SKIN` dialog!
+  * **Bitmap Sprite Rendering:** Automatically parses `MAIN.BMP`, `CBUTTONS.BMP`, `NUMBERS.BMP`, `VISCOLOR.TXT`, `PLEDIT.TXT`, and `SHUFREP.BMP`.
+  * **Built-in JSON Themes:** Comes with *Classic Retro, Modern Obsidian, Cyberpunk Neon 2077, and Amber CRT*.
+  * **Theme Creator:** Click **`SKIN`** -> **`🎨 Create JSON Theme`** to design and customize your own color schemes!
 
 ---
 

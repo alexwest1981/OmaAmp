@@ -76,16 +76,55 @@ class LcdDisplay(QWidget):
 
         time_str = f"{prefix}{mins:02d}:{secs:02d}"
 
-        # Ghost 88:88 background
-        font_time = QFont("Monospace", 15, QFont.Weight.Bold)
-        font_time.setStyleHint(QFont.StyleHint.Monospace)
-        painter.setFont(font_time)
-        painter.setPen(col_dim)
-        painter.drawText(6, 22, "-88:88")
+        # 1. 7-Segment Time Display (Bitmap or Vector)
+        digits_sprites = None
+        if self.theme_mgr.active_skin and 'digits' in self.theme_mgr.active_skin.sprites:
+            digits_sprites = self.theme_mgr.active_skin.sprites
 
-        # Active Time
-        painter.setPen(col_text)
-        painter.drawText(6, 22, time_str)
+        if digits_sprites:
+            # Draw authentic bitmap digits
+            curr_x = 6
+            digit_y = 6
+            # Minus sign if remaining
+            if self.time_mode == "remaining":
+                if 'digit_minus' in digits_sprites:
+                    painter.drawPixmap(curr_x, digit_y, digits_sprites['digit_minus'])
+                curr_x += 10
+            else:
+                if 'digit_blank' in digits_sprites:
+                    painter.drawPixmap(curr_x, digit_y, digits_sprites['digit_blank'])
+                curr_x += 10
+
+            # Minutes (2 digits)
+            d1 = (mins // 10) % 10
+            d2 = mins % 10
+            painter.drawPixmap(curr_x, digit_y, digits_sprites['digits'][d1])
+            curr_x += 10
+            painter.drawPixmap(curr_x, digit_y, digits_sprites['digits'][d2])
+            curr_x += 12
+
+            # Colon dots
+            painter.setPen(col_text)
+            painter.fillRect(curr_x - 2, digit_y + 3, 2, 2, col_text)
+            painter.fillRect(curr_x - 2, digit_y + 8, 2, 2, col_text)
+
+            # Seconds (2 digits)
+            d3 = (secs // 10) % 10
+            d4 = secs % 10
+            painter.drawPixmap(curr_x, digit_y, digits_sprites['digits'][d3])
+            curr_x += 10
+            painter.drawPixmap(curr_x, digit_y, digits_sprites['digits'][d4])
+        else:
+            # Ghost 88:88 background
+            font_time = QFont("Monospace", 15, QFont.Weight.Bold)
+            font_time.setStyleHint(QFont.StyleHint.Monospace)
+            painter.setFont(font_time)
+            painter.setPen(col_dim)
+            painter.drawText(6, 22, "-88:88")
+
+            # Active Time
+            painter.setPen(col_text)
+            painter.drawText(6, 22, time_str)
 
         # 2. Specs Row (Bottom: KBPS, KHZ, STEREO)
         font_specs = QFont("Monospace", 7, QFont.Weight.Bold)

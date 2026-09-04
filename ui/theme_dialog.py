@@ -2,10 +2,11 @@ import os
 import json
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
-    QPushButton, QColorDialog, QLineEdit, QFormLayout, QMessageBox, QGroupBox
+    QPushButton, QColorDialog, QLineEdit, QFormLayout, QMessageBox, QGroupBox,
+    QFileDialog
 )
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtGui import QFont, QColor, QDesktopServices
 
 class CustomThemeEditor(QDialog):
     def __init__(self, theme_mgr, base_theme, parent=None):
@@ -100,13 +101,13 @@ class ThemeDialog(QDialog):
         super().__init__(parent)
         self.theme_mgr = theme_mgr
         self.setWindowTitle("OmaAmp Skins & Themes")
-        self.setFixedSize(320, 360)
+        self.resize(360, 440)
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout(self)
 
-        lbl = QLabel("Select Theme:")
+        lbl = QLabel("Select Theme or Winamp Skin:")
         lbl.setFont(QFont("Monospace", 9, QFont.Weight.Bold))
         layout.addWidget(lbl)
 
@@ -120,14 +121,29 @@ class ThemeDialog(QDialog):
         self.lbl_desc.setFont(QFont("Monospace", 8))
         layout.addWidget(self.lbl_desc)
 
-        # Actions
-        btn_create = QPushButton("🎨 Create / Edit Custom Theme")
+        # Actions Row 1 (Import .wsz + Winamp Skin Museum)
+        btn_row_skins = QHBoxLayout()
+        btn_import = QPushButton("📁 Import .wsz Skin")
+        btn_import.setToolTip("Import a downloaded .wsz Winamp skin archive")
+        btn_import.clicked.connect(self._import_wsz_dialog)
+        btn_row_skins.addWidget(btn_import)
+
+        btn_museum = QPushButton("🌐 Skin Museum")
+        btn_museum.setToolTip("Browse 65,000+ Classic Winamp Skins at skins.webamp.org")
+        btn_museum.clicked.connect(self._open_skin_museum)
+        btn_row_skins.addWidget(btn_museum)
+        layout.addLayout(btn_row_skins)
+
+        # Actions Row 2 (Create JSON Theme + Close)
+        btn_row_theme = QHBoxLayout()
+        btn_create = QPushButton("🎨 Create JSON Theme")
         btn_create.clicked.connect(self._create_custom)
-        layout.addWidget(btn_create)
+        btn_row_theme.addWidget(btn_create)
 
         btn_close = QPushButton("Close")
         btn_close.clicked.connect(self.accept)
-        layout.addWidget(btn_close)
+        btn_row_theme.addWidget(btn_close)
+        layout.addLayout(btn_row_theme)
 
         self.refresh_list()
 
@@ -136,8 +152,7 @@ class ThemeDialog(QDialog):
         themes = self.theme_mgr.get_available_themes()
         curr_row = 0
         for i, t in enumerate(themes):
-            prefix = "[User] " if not t["is_builtin"] else "[Built-in] "
-            item = QListWidgetItem(f"{prefix}{t['name']}")
+            item = QListWidgetItem(t["name"])
             item.setData(Qt.ItemDataRole.UserRole, t["id"])
             self.theme_list.addItem(item)
             if t["id"] == self.theme_mgr.current_theme_id:
@@ -152,6 +167,20 @@ class ThemeDialog(QDialog):
             desc = self.theme_mgr.current_theme.get("description", "")
             author = self.theme_mgr.current_theme.get("author", "")
             self.lbl_desc.setText(f"Author: {author}\n{desc}")
+
+    def _import_wsz_dialog(self):
+        fpath, _ = QFileDialog.getOpenFileName(
+            self, "Import Winamp Skin (.wsz / .zip)", "",
+            "Winamp Skin Files (*.wsz *.zip);;All Files (*)"
+        )
+        if fpath:
+            tid = self.theme_mgr.import_skin_file(fpath)
+            if tid:
+                self.refresh_list()
+                QMessageBox.information(self, "Skin Imported", f"Winamp Skin successfully loaded!\n{os.path.basename(fpath)}")
+
+    def _open_skin_museum(self):
+        QDesktopServices.openUrl(QUrl("https://skins.webamp.org/"))
 
     def _create_custom(self):
         editor = CustomThemeEditor(self.theme_mgr, self.theme_mgr.current_theme, self)
