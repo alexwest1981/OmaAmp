@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QWidget, QMenu
+from PyQt6.QtWidgets import QWidget, QSizePolicy
 from PyQt6.QtCore import Qt, QRect, QPoint, pyqtSignal, QTimer
 from PyQt6.QtGui import QPainter, QImage, QPixmap, QColor, QFont, QPen, QMouseEvent
 
@@ -13,11 +13,10 @@ class SkinnedPlayerWidget(QWidget):
         self.audio = audio_engine
         self.theme_mgr = theme_mgr
         
-        # Winamp 2.x standard dimensions: 275x116 (Base scale 1x or 2x)
         self.base_w = 275
         self.base_h = 116
-        self.setFixedSize(self.base_w * 2, self.base_h * 2)  # High-DPI 2x scale by default (550x232)
         self.scale = 2.0
+        self.setFixedSize(550, 232)
         
         self.is_dragging_seek = False
         self.is_dragging_vol = False
@@ -37,11 +36,6 @@ class SkinnedPlayerWidget(QWidget):
         self.scroll_timer.setInterval(120)
         self.scroll_timer.timeout.connect(self._on_scroll)
         self.scroll_timer.start()
-
-    def set_scale(self, scale=2.0):
-        self.scale = scale
-        self.setFixedSize(int(self.base_w * scale), int(self.base_h * scale))
-        self.update()
 
     def _on_tick(self):
         self.update()
@@ -84,7 +78,6 @@ class SkinnedPlayerWidget(QWidget):
                     self.audio.next_track()
                 elif 136 <= x < 158:
                     self.pressed_btn = 'eject'
-                    # Trigger eject via parent or dialog
                 elif 164 <= x < 211:
                     self.audio.shuffle = not self.audio.shuffle
                 elif 210 <= x < 238:
@@ -101,7 +94,7 @@ class SkinnedPlayerWidget(QWidget):
             elif 26 <= y <= 39 and 36 <= x <= 99:
                 self.time_mode = "remaining" if self.time_mode == "elapsed" else "elapsed"
 
-            # 4. Skin Dialog Button in Titlebar (x=6..20, y=3..12)
+            # 4. Skin Dialog Button in Titlebar (x=6..22, y=3..13)
             elif 3 <= y <= 13:
                 if 6 <= x <= 22:
                     self.open_skin_dialog.emit()
@@ -167,6 +160,7 @@ class SkinnedPlayerWidget(QWidget):
     # -------------------------------------------------------------------------
     def paintEvent(self, event):
         painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
         painter.scale(self.scale, self.scale)
 
         skin = self.theme_mgr.active_skin
@@ -232,19 +226,16 @@ class SkinnedPlayerWidget(QWidget):
         y = 26
 
         if numbers_img and not numbers_img.isNull():
-            # Minus sign / blank at x=36
             if is_minus:
                 painter.drawImage(36, y, numbers_img, 99 if numbers_img.width() >= 108 else 0, 0, d_w, d_h)
             else:
                 painter.drawImage(36, y, numbers_img, 90 if numbers_img.width() >= 99 else 0, 0, d_w, d_h)
 
-            # Minutes
             m1 = (mins // 10) % 10
             m2 = mins % 10
             painter.drawImage(48, y, numbers_img, m1 * d_w, 0, d_w, d_h)
             painter.drawImage(60, y, numbers_img, m2 * d_w, 0, d_w, d_h)
 
-            # Seconds
             s1 = (secs // 10) % 10
             s2 = secs % 10
             painter.drawImage(78, y, numbers_img, s1 * d_w, 0, d_w, d_h)
@@ -256,9 +247,7 @@ class SkinnedPlayerWidget(QWidget):
             painter.drawText(36, y + 11, f"{prefix}{mins:02d}:{secs:02d}")
 
     def _draw_vis(self, painter):
-        # Visualizer box at (24, 43, 75, 16)
         vis_rect = QRect(24, 43, 75, 16)
-        
         vis_bg = self.theme_mgr.color("vis_bg", "#000000")
         painter.fillRect(vis_rect, vis_bg)
 
@@ -280,7 +269,6 @@ class SkinnedPlayerWidget(QWidget):
             bar_h = int(bars[i] * 15)
             peak_y = 58 - int(peaks[i] * 15)
 
-            # 2px segmented bars
             y = 58
             while y > (58 - bar_h):
                 rel = (58 - y) / 15.0
@@ -292,8 +280,7 @@ class SkinnedPlayerWidget(QWidget):
                 painter.fillRect(bx, peak_y, bar_w, 1, col_peak)
 
     def _draw_marquee(self, painter, text_img):
-        # Song Title Marquee at (111, 27, 153, 14)
-        clip_rect = QRect(111, 27, 153, 14)
+        clip_rect = QRect(111, 27, 153, 12)
         painter.setClipRect(clip_rect)
 
         track_name = self.audio.current_track.display_name if self.audio.current_track else "WINAMP - IT REALLY WHIPS THE LLAMA'S ASS!"
@@ -303,37 +290,34 @@ class SkinnedPlayerWidget(QWidget):
 
         col_text = self.theme_mgr.color("lcd_text", "#ffffff")
         painter.setPen(col_text)
-        painter.setFont(QFont("Monospace", 7, QFont.Weight.Bold))
-        painter.drawText(112, 38, disp_text)
+        painter.setFont(QFont("Monospace", 6, QFont.Weight.Bold))
+        painter.drawText(112, 36, disp_text)
 
         painter.setClipping(False)
 
     def _draw_specs(self, painter, monoster_img):
-        painter.setFont(QFont("Monospace", 6, QFont.Weight.Bold))
+        painter.setFont(QFont("Monospace", 5, QFont.Weight.Bold))
         col_kbps = self.theme_mgr.color("lcd_kbps", "#00ff33")
         painter.setPen(col_kbps)
 
         kbps = self.audio.current_track.bitrate if self.audio.current_track else 320
         khz = int(self.audio.current_track.samplerate / 1000) if self.audio.current_track else 44
 
-        painter.drawText(112, 53, f"{kbps} KBPS")
-        painter.drawText(156, 53, f"{khz} KHZ")
-        painter.drawText(200, 53, "STEREO")
+        painter.drawText(112, 47, f"{kbps}K")
+        painter.drawText(148, 47, f"{khz}K")
+        painter.drawText(184, 47, "STEREO")
 
     def _draw_sliders(self, painter, bitmaps):
-        # Volume slider at (107, 57, 68, 13)
         vol_img = bitmaps.get('volume')
         vol_ratio = self.audio.volume / 100.0
         knob_x = 107 + int(vol_ratio * 54)
         
         if vol_img and not vol_img.isNull():
-            # Draw knob from volume.bmp
             painter.drawImage(knob_x, 57, vol_img, 0, 422, 14, 11)
         else:
             painter.fillRect(107, 62, 68, 3, QColor('#000000'))
             painter.fillRect(knob_x, 58, 14, 11, QColor('#ffffff'))
 
-        # Balance slider at (177, 57, 38, 13)
         bal_img = bitmaps.get('balance')
         bal_ratio = (self.audio.balance + 1.0) / 2.0
         b_knob_x = 177 + int(bal_ratio * 24)
@@ -345,24 +329,19 @@ class SkinnedPlayerWidget(QWidget):
             painter.fillRect(b_knob_x, 58, 14, 11, QColor('#ffffff'))
 
     def _draw_seek(self, painter, posbar_img):
-        # Seek bar at (16, 72, 248, 10)
         pos_sec = self.audio.current_position
         dur_sec = self.audio.current_track.duration if self.audio.current_track else 0.0
         ratio = (pos_sec / dur_sec) if dur_sec > 0 else 0.0
         ratio = max(0.0, min(1.0, ratio))
-        
         thumb_x = 16 + int(ratio * 219)
 
         if posbar_img and not posbar_img.isNull():
-            # Draw posbar thumb (248, 0, 29, 10)
             painter.drawImage(thumb_x, 72, posbar_img, 248, 0, 29, 10)
         else:
             painter.fillRect(16, 76, 248, 2, QColor('#000000'))
             painter.fillRect(thumb_x, 72, 29, 10, QColor('#cccccc'))
 
     def _draw_cbuttons(self, painter, cbuttons_img):
-        # Cbuttons at (16, 88)
-        # Prev (w=23), Play (w=23), Pause (w=23), Stop (w=23), Next (w=22), Eject (w=22)
         btns = [
             ('prev', 16, 0, 23, 18),
             ('play', 39, 23, 23, 18),
@@ -380,20 +359,15 @@ class SkinnedPlayerWidget(QWidget):
             if cbuttons_img.width() >= 136:
                 is_eject_pressed = (self.pressed_btn == 'eject')
                 painter.drawImage(136, 89, cbuttons_img, 114, 16 if is_eject_pressed else 0, 22, 16)
-        else:
-            pass
 
     def _draw_shufrep(self, painter, shufrep_img):
         if shufrep_img and not shufrep_img.isNull():
-            # Shuffle at (164, 89, 47, 15)
             shuf_src_y = 15 if self.audio.shuffle else 0
             painter.drawImage(164, 89, shufrep_img, 28, shuf_src_y, 47, 15)
 
-            # Repeat at (210, 89, 28, 15)
             rep_src_y = 15 if self.audio.repeat else 0
             painter.drawImage(210, 89, shufrep_img, 0, rep_src_y, 28, 15)
 
-            # EQ at (219, 58, 23, 12) & PL at (242, 58, 23, 12)
             if shufrep_img.height() >= 73:
                 painter.drawImage(219, 58, shufrep_img, 0, 61, 23, 12)
                 painter.drawImage(242, 58, shufrep_img, 23, 61, 23, 12)

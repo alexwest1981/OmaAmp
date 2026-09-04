@@ -22,8 +22,8 @@ class MainWindow(QWidget):
         self.config = config_mgr
 
         self.setWindowTitle("OmaAmp")
-        self.setMinimumSize(320, 200)
-        self.resize(340, 580)
+        self.setMinimumSize(275, 200)
+        self.resize(550, 720)
         self.setAcceptDrops(True)
 
         # Child modular components (embedded as widget decks)
@@ -67,18 +67,18 @@ class MainWindow(QWidget):
 
     def init_ui(self):
         root_layout = QVBoxLayout(self)
-        root_layout.setContentsMargins(6, 6, 6, 6)
-        root_layout.setSpacing(6)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.setSpacing(2)
 
         # =====================================================================
         # 1. MAIN PLAYER DECK (Classic Winamp Chassis)
         # =====================================================================
         self.player_frame = QFrame()
-        self.player_frame.setFrameShape(QFrame.Shape.StyledPanel)
+        self.player_frame.setFrameShape(QFrame.Shape.NoFrame)
         self.player_frame.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         player_layout = QVBoxLayout(self.player_frame)
-        player_layout.setContentsMargins(4, 4, 4, 4)
-        player_layout.setSpacing(4)
+        player_layout.setContentsMargins(0, 0, 0, 0)
+        player_layout.setSpacing(0)
         
         # 1. Authentic Winamp Skinned Canvas Container
         self.skinned_deck_container = QWidget()

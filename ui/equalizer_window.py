@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPainter, QPen, QColor, QFont
+from ui.skinned_equalizer import SkinnedEqualizerWidget
 
 PRESETS = {
     "Flat": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -58,7 +59,6 @@ class EqualizerWindow(QWidget):
     def __init__(self, theme_mgr, parent=None):
         super().__init__(parent)
         self.theme_mgr = theme_mgr
-        self.setFixedHeight(140)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         self.sliders = []
@@ -71,8 +71,24 @@ class EqualizerWindow(QWidget):
 
     def init_ui(self):
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(6, 6, 6, 6)
-        main_layout.setSpacing(4)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        # 1. Skinned Canvas Equalizer (100% Authentic Winamp EQ)
+        self.skinned_eq_container = QWidget()
+        skinned_layout = QVBoxLayout(self.skinned_eq_container)
+        skinned_layout.setContentsMargins(0, 0, 0, 0)
+        self.skinned_eq = SkinnedEqualizerWidget(self.theme_mgr, self)
+        self.skinned_eq.eq_changed.connect(self._on_skinned_eq_changed)
+        skinned_layout.addWidget(self.skinned_eq, alignment=Qt.AlignmentFlag.AlignCenter)
+        main_layout.addWidget(self.skinned_eq_container)
+
+        # 2. Vector Equalizer Container
+        self.vector_eq_container = QWidget()
+        vector_layout = QVBoxLayout(self.vector_eq_container)
+        vector_layout.setContentsMargins(6, 6, 6, 6)
+        vector_layout.setSpacing(4)
+        main_layout.addWidget(self.vector_eq_container)
 
         # Title / Preset Bar
         top_row = QHBoxLayout()
@@ -102,11 +118,11 @@ class EqualizerWindow(QWidget):
         self.combo_presets.currentTextChanged.connect(self._on_preset_selected)
         top_row.addWidget(self.combo_presets)
 
-        main_layout.addLayout(top_row)
+        vector_layout.addLayout(top_row)
 
         # Curve display
         self.curve_view = EqCurveWidget(self.theme_mgr, self.sliders, self)
-        main_layout.addWidget(self.curve_view)
+        vector_layout.addWidget(self.curve_view)
 
         # Sliders Row
         sliders_row = QHBoxLayout()
@@ -148,7 +164,12 @@ class EqualizerWindow(QWidget):
             sliders_row.addLayout(col)
 
         self.curve_view.sliders = self.sliders
-        main_layout.addLayout(sliders_row)
+        vector_layout.addLayout(sliders_row)
+
+    def _on_skinned_eq_changed(self, bands, preamp):
+        self.preamp_val = preamp
+        self.eq_enabled = self.skinned_eq.eq_enabled
+        self.eq_changed.emit(bands, preamp)
 
     def _toggle_on(self):
         self.eq_enabled = self.btn_on.isChecked()
@@ -170,10 +191,16 @@ class EqualizerWindow(QWidget):
 
     def _on_slider_changed(self):
         self.curve_view.update()
-        band_vals = [s.value() for s in self.sliders]
-        self.eq_changed.emit(band_vals, self.slider_preamp.value())
+        bands = [s.value() for s in self.sliders]
+        preamp = self.slider_preamp.value()
+        self.preamp_val = preamp
+        self.eq_changed.emit(bands, preamp)
 
     def apply_theme(self):
+        is_skinned = (self.theme_mgr.active_skin is not None)
+        self.skinned_eq_container.setVisible(is_skinned)
+        self.vector_eq_container.setVisible(not is_skinned)
+        
         bg = self.theme_mgr.hex("chassis_bg", "#282932")
         border = self.theme_mgr.hex("chassis_border", "#4e5062")
         btn_bg = self.theme_mgr.hex("button_bg", "#323440")
@@ -184,13 +211,10 @@ class EqualizerWindow(QWidget):
         thumb = self.theme_mgr.hex("slider_thumb", "#5a5d72")
 
         self.setStyleSheet(f"""
-            QWidget {{
+            EqualizerWindow, QWidget {{
                 background-color: {bg};
                 color: {btn_text};
                 font-family: 'Monospace';
-            }}
-            QLabel {{
-                color: {btn_text};
             }}
             QPushButton {{
                 background-color: {btn_bg};
@@ -199,9 +223,6 @@ class EqualizerWindow(QWidget):
                 border-radius: 2px;
                 font-size: 8px;
                 font-weight: bold;
-            }}
-            QPushButton:hover {{
-                background-color: {border};
             }}
             QPushButton:checked {{
                 color: {btn_active};
@@ -229,4 +250,3 @@ class EqualizerWindow(QWidget):
             }}
         """)
         self.lbl_title.setStyleSheet(f"color: {title_text};")
-        self.curve_view.update()
