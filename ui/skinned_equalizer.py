@@ -13,13 +13,14 @@ class SkinnedEqualizerWidget(QWidget):
         self.base_w = 275
         self.base_h = 116
         self.scale = 2.0
-        self.setFixedSize(550, 232)
+        self.setFixedSize(int(self.base_w * self.scale), int(self.base_h * self.scale))
 
         self.eq_enabled = True
         self.auto_enabled = False
-        self.preamp = 0       # -12 to +12 dB
+        self.preamp = 0       # -14 to +14 dB
         self.bands = [0] * 10 # -14 to +14 dB (indices 0..9: 60Hz..16kHz)
         self.active_slider = None # 'preamp' or index 0..9
+        self._cached_knob = None
 
     def _map_to_base(self, pos: QPoint):
         return QPoint(int(pos.x() / self.scale), int(pos.y() / self.scale))
@@ -73,7 +74,7 @@ class SkinnedEqualizerWidget(QWidget):
         self.update()
 
     def _update_slider_val(self, y):
-        # Slider trough height: 38 (top, +12dB) to 90 (bottom, -12dB)
+        # Slider trough: 38 (top, +14dB) to 90 (bottom, -14dB)
         rel = max(0.0, min(1.0, (y - 38) / 52.0))
         val_db = int((1.0 - rel * 2.0) * 14) # +14 to -14
         
@@ -107,6 +108,20 @@ class SkinnedEqualizerWidget(QWidget):
         self.eq_changed.emit(self.bands, self.preamp)
         self.update()
 
+    def _get_masked_knob(self, eq_ex, eqmain):
+        if self._cached_knob is None:
+            source = eq_ex if (eq_ex and not eq_ex.isNull() and eq_ex.width() >= 14) else eqmain
+            if source and not source.isNull():
+                src_y = 0 if source == eq_ex else 164
+                knob_img = source.copy(0, src_y, 14, 11).convertToFormat(QImage.Format.Format_ARGB32)
+                key_col = knob_img.pixelColor(0, 0)
+                for y in range(knob_img.height()):
+                    for x in range(knob_img.width()):
+                        if knob_img.pixelColor(x, y) == key_col:
+                            knob_img.setPixelColor(x, y, QColor(0, 0, 0, 0))
+                self._cached_knob = knob_img
+        return self._cached_knob
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
@@ -123,27 +138,34 @@ class SkinnedEqualizerWidget(QWidget):
         else:
             painter.fillRect(0, 0, self.base_w, self.base_h, self.theme_mgr.color("chassis_bg", "#282932"))
 
-        # 2. Live Frequency Response Curve (x=86, y=17, w=113, h=19)
+        # 2. Clean empty slider tracks for 10 bands
+        if eqmain and not eqmain.isNull() and eqmain.height() >= 295:
+            for i in range(10):
+                bx = 78 + i * 18
+                track = eqmain.copy(13 + i * 15, 237, 13, 56)
+                painter.drawImage(bx, 38, track)
+
+        # 3. Live Frequency Response Curve (x=86, y=17, w=113, h=19)
         self._draw_curve(painter)
 
-        # 3. Preamp Slider Knob (x=21, y=38..90)
-        self._draw_knob(painter, 21, self.preamp, eq_ex, eqmain)
+        # 4. Knobs (Preamp + 10 Bands)
+        knob = self._get_masked_knob(eq_ex, eqmain)
+        
+        # Preamp knob at x=21
+        self._draw_knob(painter, 21, self.preamp, knob)
 
-        # 4. 10 Band Slider Knobs (x=78 + i*18)
+        # 10 Band Knobs at x=78 + i*18
         for i in range(10):
             bx = 78 + i * 18
-            self._draw_knob(painter, bx, self.bands[i], eq_ex, eqmain)
+            self._draw_knob(painter, bx, self.bands[i], knob)
 
-    def _draw_knob(self, painter, x, val_db, eq_ex, eqmain):
+    def _draw_knob(self, painter, x, val_db, knob):
+        # val_db is -14 to +14 dB. Middle (0 dB) is y=64.
         rel = (val_db + 14) / 28.0 # 0.0 (-14dB) to 1.0 (+14dB)
         knob_y = int(90 - rel * 52)
 
-        if eq_ex and not eq_ex.isNull() and eq_ex.width() >= 14:
-            # Clean thumb from eq_ex.bmp (0, 0, 14, 11)
-            painter.drawImage(x, knob_y, eq_ex, 0, 0, 14, 11)
-        elif eqmain and not eqmain.isNull() and eqmain.height() >= 175:
-            # Fallback to eqmain (0, 164, 14, 11)
-            painter.drawImage(x, knob_y, eqmain, 0, 164, 14, 11)
+        if knob:
+            painter.drawImage(x, knob_y, knob)
         else:
             painter.fillRect(x, knob_y, 14, 11, QColor('#ffffff'))
 
