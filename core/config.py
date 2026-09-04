@@ -1,10 +1,12 @@
 import os
 import json
+from core.i18n import i18n
 
 CONFIG_PATH = os.path.expanduser("~/.config/omaamp/config.json")
 
 DEFAULT_CONFIG = {
     "theme": "classic_retro",
+    "language": i18n.get_language(),
     "volume": 80,
     "balance": 0,
     "shuffle": False,
@@ -32,6 +34,8 @@ class ConfigManager:
                 with open(CONFIG_PATH, "r", encoding="utf-8") as f:
                     saved = json.load(f)
                     self.data.update(saved)
+                    if "language" in saved:
+                        i18n.set_language(saved["language"])
             except Exception as e:
                 print(f"Error loading config: {e}")
 

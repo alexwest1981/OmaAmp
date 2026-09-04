@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPoint
 from PyQt6.QtGui import QFont, QColor, QIcon, QPixmap, QDragEnterEvent, QDropEvent, QKeyEvent
+from core.i18n import _, i18n
 
 class PlaylistWindow(QWidget):
     track_selected = pyqtSignal(int)
@@ -489,5 +490,17 @@ class PlaylistWindow(QWidget):
             self.lbl_title.setStyleSheet(f"color: {title_text}; background-image: url('{titlebar_pattern}'); background-repeat: repeat; padding: 2px 6px; border-radius: 2px;")
         else:
             self.lbl_title.setStyleSheet(f"color: {title_text}; background: transparent;")
+        self.refresh_list()
+
+    def retranslate_ui(self):
+        self.lbl_title.setText(_("pl_title"))
+        self.search_input.setPlaceholderText(_("pl_search_placeholder"))
+        skin = self.theme_mgr.active_skin
+        if not (skin and skin.sprites and 'pl_btn_add' in skin.sprites):
+            self.btn_pl_add.setText(_("pl_btn_add"))
+            self.btn_pl_rem.setText(_("pl_btn_rem"))
+            self.btn_pl_sel.setText(_("pl_btn_sel"))
+            self.btn_pl_misc.setText(_("pl_btn_misc"))
+            self.btn_pl_list.setText(_("pl_btn_list"))
         self.refresh_list()
 

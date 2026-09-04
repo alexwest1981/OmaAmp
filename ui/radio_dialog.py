@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QUrl, pyqtSignal, QObject
 from PyQt6.QtGui import QFont, QDesktopServices, QIcon
+from core.i18n import _, i18n
 
 
 class BackgroundWorker(QObject):
@@ -35,7 +36,7 @@ class RadioDialog(QDialog):
         self.theme_mgr = theme_mgr
         self.radio_mgr = audio_engine.radio_mgr
         
-        self.setWindowTitle("OmaAmp Online Radio & YouTube Stream Studio")
+        self.setWindowTitle(_("radio_window_title"))
         self.resize(720, 600)
         self.setMinimumSize(600, 480)
 
@@ -54,7 +55,7 @@ class RadioDialog(QDialog):
 
         # Header Title Bar
         header = QHBoxLayout()
-        lbl_title = QLabel("📻 OMAAMP RADIO & YOUTUBE STREAM STUDIO")
+        lbl_title = QLabel(_("radio_header"))
         lbl_title.setFont(QFont("Monospace", 10, QFont.Weight.Bold))
         header.addWidget(lbl_title)
         header.addStretch()
@@ -72,7 +73,7 @@ class RadioDialog(QDialog):
         self.progress_bar.setVisible(False)
         bottom_row.addWidget(self.progress_bar)
 
-        btn_close = QPushButton("Close")
+        btn_close = QPushButton(_("btn_close"))
         btn_close.setFixedWidth(80)
         btn_close.clicked.connect(self.accept)
         bottom_row.addWidget(btn_close)
@@ -84,22 +85,22 @@ class RadioDialog(QDialog):
         # Tab 1: Curated Stations (SomaFM, SR, Lofi, Synthwave, Electronic, Rock, Jazz)
         self.tab_curated = QWidget()
         self._init_curated_tab()
-        self.tabs.addTab(self.tab_curated, "📻 Curated Stations")
+        self.tabs.addTab(self.tab_curated, _("radio_tab_curated"))
 
         # Tab 2: Global Radio Browser
         self.tab_browser = QWidget()
         self._init_browser_tab()
-        self.tabs.addTab(self.tab_browser, "🌐 Radio Browser (30k+)")
+        self.tabs.addTab(self.tab_browser, _("radio_tab_browser"))
 
         # Tab 3: YouTube Playlists & Search
         self.tab_youtube = QWidget()
         self._init_youtube_tab()
-        self.tabs.addTab(self.tab_youtube, "📺 YouTube Streams")
+        self.tabs.addTab(self.tab_youtube, _("radio_tab_youtube"))
 
         # Tab 4: Favorites & Custom Streams
         self.tab_favorites = QWidget()
         self._init_favorites_tab()
-        self.tabs.addTab(self.tab_favorites, "⭐ Favorites & Custom")
+        self.tabs.addTab(self.tab_favorites, _("radio_tab_favorites"))
 
         root_layout.addWidget(self.tabs)
         root_layout.addLayout(bottom_row)

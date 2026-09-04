@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QUrl, QSize
 from PyQt6.QtGui import QFont, QColor, QDesktopServices, QIcon, QPixmap
+from core.i18n import _, i18n
 
 
 class ThemeDialog(QDialog):
@@ -16,7 +17,7 @@ class ThemeDialog(QDialog):
         self.theme_mgr = theme_mgr
         self.github = theme_mgr.github
         
-        self.setWindowTitle("OmaAmp Theme Studio & Community Hub")
+        self.setWindowTitle(_("theme_window_title"))
         self.resize(620, 560)
         self.setMinimumSize(540, 480)
 
@@ -29,7 +30,7 @@ class ThemeDialog(QDialog):
 
         # Header Title
         header = QHBoxLayout()
-        lbl_title = QLabel("OMAAMP THEME ENGINE & GITHUB HUB")
+        lbl_title = QLabel(_("theme_header"))
         lbl_title.setFont(QFont("Monospace", 10, QFont.Weight.Bold))
         header.addWidget(lbl_title)
         header.addStretch()
@@ -42,22 +43,22 @@ class ThemeDialog(QDialog):
         # Tab 1: Installed Themes
         self.tab_installed = QWidget()
         self._init_installed_tab()
-        self.tabs.addTab(self.tab_installed, "🎨 Installed Themes")
+        self.tabs.addTab(self.tab_installed, _("theme_tab_installed"))
 
         # Tab 2: GitHub Community Hub
         self.tab_community = QWidget()
         self._init_community_tab()
-        self.tabs.addTab(self.tab_community, "🌐 GitHub Community")
+        self.tabs.addTab(self.tab_community, _("theme_tab_community"))
 
         # Tab 3: Visual Theme Studio / Creator
         self.tab_creator = QWidget()
         self._init_creator_tab()
-        self.tabs.addTab(self.tab_creator, "✨ Theme Creator")
+        self.tabs.addTab(self.tab_creator, _("theme_tab_creator"))
 
         # Tab 4: GitHub Account & Publishing
         self.tab_publish = QWidget()
         self._init_publish_tab()
-        self.tabs.addTab(self.tab_publish, "🚀 Publish & Share")
+        self.tabs.addTab(self.tab_publish, _("theme_tab_publish"))
 
         root_layout.addWidget(self.tabs)
 

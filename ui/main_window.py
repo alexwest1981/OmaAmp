@@ -12,6 +12,7 @@ from ui.visualizer_studio import VisualizerStudio
 from ui.theme_dialog import ThemeDialog
 from ui.equalizer_window import EqualizerWindow
 from ui.playlist_window import PlaylistWindow
+from core.i18n import _, i18n
 
 class MainWindow(QWidget):
     def __init__(self, audio_engine, theme_mgr, config_mgr, vis_gen=None):
@@ -36,9 +37,11 @@ class MainWindow(QWidget):
 
         self.init_ui()
         self.apply_theme()
+        self.retranslate_ui()
 
         # Connect signals
         self.theme_mgr.theme_changed.connect(self.apply_theme)
+        i18n.language_changed.connect(self.retranslate_ui)
         self.audio.track_changed.connect(self._on_track_changed)
         self.audio.position_changed.connect(self._on_position_changed)
         self.audio.playback_state_changed.connect(self._on_playback_state_changed)
@@ -108,6 +111,12 @@ class MainWindow(QWidget):
         self.btn_vis.setToolTip("Open Visualizer Studio (Fullscreen / Multi-mode)")
         self.btn_vis.clicked.connect(self._open_vis_studio)
         title_row.addWidget(self.btn_vis)
+
+        self.btn_lang = QPushButton(i18n.get_language().upper())
+        self.btn_lang.setFixedSize(28, 18)
+        self.btn_lang.setToolTip("Switch Language / Byt språk (SV / EN)")
+        self.btn_lang.clicked.connect(self._toggle_language)
+        title_row.addWidget(self.btn_lang)
 
         player_layout.addLayout(title_row)
 
@@ -376,6 +385,35 @@ class MainWindow(QWidget):
     def _open_vis_studio(self):
         studio = VisualizerStudio(self.theme_mgr, self.audio, self)
         studio.exec()
+
+    def _toggle_language(self):
+        new_lang = "en" if i18n.get_language() == "sv" else "sv"
+        i18n.set_language(new_lang)
+        self.config.set("language", new_lang)
+        self.config.save()
+        self.btn_lang.setText(new_lang.upper())
+        self.retranslate_ui()
+
+    def retranslate_ui(self):
+        self.lbl_title.setText(_("app_title"))
+        self.btn_radio.setText(_("btn_radio"))
+        self.btn_radio.setToolTip(_("btn_radio_tip"))
+        self.btn_skin.setText(_("btn_skin"))
+        self.btn_skin.setToolTip(_("btn_skin_tip"))
+        self.btn_vis.setText(_("btn_vis"))
+        self.btn_vis.setToolTip(_("btn_vis_tip"))
+        self.btn_prev.setToolTip(_("btn_prev_tip"))
+        self.btn_play.setToolTip(_("btn_play_tip"))
+        self.btn_pause.setToolTip(_("btn_pause_tip"))
+        self.btn_stop.setToolTip(_("btn_stop_tip"))
+        self.btn_next.setToolTip(_("btn_next_tip"))
+        self.btn_eject.setToolTip(_("btn_eject_tip"))
+        self.btn_shuffle.setToolTip(_("btn_shuf_tip"))
+        self.btn_repeat.setToolTip(_("btn_rep_tip"))
+        self.btn_eq.setToolTip(_("btn_eq_tip"))
+        self.btn_pl.setToolTip(_("btn_pl_tip"))
+        self.eq_widget.retranslate_ui()
+        self.pl_widget.retranslate_ui()
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         if event.mimeData().hasUrls() or event.mimeData().hasText():

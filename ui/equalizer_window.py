@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPainter, QPen, QColor, QFont
+from core.i18n import _, i18n
 
 PRESETS = {
     "Flat": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -256,3 +257,8 @@ class EqualizerWindow(QWidget):
             self.lbl_title.setStyleSheet(f"color: {title_text}; background-image: url('{titlebar_pattern}'); background-repeat: repeat; padding: 2px 6px; border-radius: 2px;")
         else:
             self.lbl_title.setStyleSheet(f"color: {title_text}; background: transparent;")
+
+    def retranslate_ui(self):
+        self.lbl_title.setText(_("eq_title"))
+        self.btn_on.setText(_("eq_on"))
+        self.btn_zero.setText(_("eq_zero"))
