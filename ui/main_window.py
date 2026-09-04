@@ -12,6 +12,7 @@ from ui.visualizer_studio import VisualizerStudio
 from ui.theme_dialog import ThemeDialog
 from ui.equalizer_window import EqualizerWindow
 from ui.playlist_window import PlaylistWindow
+from ui.skinned_player import SkinnedPlayerWidget
 
 class MainWindow(QWidget):
     def __init__(self, audio_engine, theme_mgr, config_mgr, vis_gen=None):
@@ -75,10 +76,28 @@ class MainWindow(QWidget):
         self.player_frame = QFrame()
         self.player_frame.setFrameShape(QFrame.Shape.StyledPanel)
         self.player_frame.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
-        
         player_layout = QVBoxLayout(self.player_frame)
-        player_layout.setContentsMargins(6, 6, 6, 6)
+        player_layout.setContentsMargins(4, 4, 4, 4)
         player_layout.setSpacing(4)
+        
+        # 1. Authentic Winamp Skinned Canvas Container
+        self.skinned_deck_container = QWidget()
+        skinned_layout = QVBoxLayout(self.skinned_deck_container)
+        skinned_layout.setContentsMargins(0, 0, 0, 0)
+        self.skinned_player = SkinnedPlayerWidget(self.audio, self.theme_mgr, self)
+        self.skinned_player.open_skin_dialog.connect(self._open_theme_dialog)
+        self.skinned_player.open_vis_studio.connect(self._open_vis_studio)
+        self.skinned_player.toggle_eq.connect(self._toggle_eq)
+        self.skinned_player.toggle_pl.connect(self._toggle_pl)
+        skinned_layout.addWidget(self.skinned_player, alignment=Qt.AlignmentFlag.AlignCenter)
+        player_layout.addWidget(self.skinned_deck_container)
+
+        # 2. Vector / Responsive Deck Container (for pure JSON themes)
+        self.vector_deck_container = QWidget()
+        vector_layout = QVBoxLayout(self.vector_deck_container)
+        vector_layout.setContentsMargins(0, 0, 0, 0)
+        vector_layout.setSpacing(4)
+        player_layout.addWidget(self.vector_deck_container)
 
         # Title / Skin Bar
         title_row = QHBoxLayout()
@@ -96,11 +115,11 @@ class MainWindow(QWidget):
         self.btn_skin.clicked.connect(self._open_theme_dialog)
         title_row.addWidget(self.btn_skin)
 
-        player_layout.addLayout(title_row)
+        vector_layout.addLayout(title_row)
 
         # Scrolling Song Title Marquee
         self.marquee = MarqueeDisplay(self.theme_mgr, self)
-        player_layout.addWidget(self.marquee)
+        vector_layout.addWidget(self.marquee)
 
         # 7-Segment LED Time (Left) + Spectrum Visualizer (Right)
         deck_mid = QHBoxLayout()
@@ -114,7 +133,7 @@ class MainWindow(QWidget):
         self.vis.setFixedHeight(42)
         deck_mid.addWidget(self.vis)
 
-        player_layout.addLayout(deck_mid)
+        vector_layout.addLayout(deck_mid)
 
         # Sliders Row (Volume, Balance, Position Seek)
         sliders_layout = QHBoxLayout()
@@ -166,7 +185,7 @@ class MainWindow(QWidget):
         s_col.addWidget(lbl_s)
         sliders_layout.addLayout(s_col)
 
-        player_layout.addLayout(sliders_layout)
+        vector_layout.addLayout(sliders_layout)
 
         # Playback Buttons + Modes + EQ/PL Toggles
         btn_row = QHBoxLayout()
@@ -235,7 +254,7 @@ class MainWindow(QWidget):
         self.btn_vis.clicked.connect(self._open_vis_studio)
         btn_row.addWidget(self.btn_vis)
 
-        player_layout.addLayout(btn_row)
+        vector_layout.addLayout(btn_row)
         root_layout.addWidget(self.player_frame)
 
         # =====================================================================
@@ -363,6 +382,11 @@ class MainWindow(QWidget):
         title_text = self.theme_mgr.hex("titlebar_text", "#00e5ff")
         trough = self.theme_mgr.hex("slider_trough", "#0a0a0e")
         thumb = self.theme_mgr.hex("slider_thumb", "#5a5d72")
+
+        # Toggle between Skinned Canvas Deck and Vector Deck
+        is_skinned = (self.theme_mgr.active_skin is not None)
+        self.skinned_deck_container.setVisible(is_skinned)
+        self.vector_deck_container.setVisible(not is_skinned)
 
         self.setStyleSheet(f"""
             MainWindow, QWidget {{
