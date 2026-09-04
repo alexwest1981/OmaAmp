@@ -40,16 +40,19 @@ class EqCurveWidget(QWidget):
         h = self.height()
         mid_y = h / 2.0
         
+        col_w = w / 11.0
         points = []
-        num = len(self.sliders)
         for i, s in enumerate(self.sliders):
-            x = int((i + 0.5) * (w / num))
+            x = int((i + 1 + 0.5) * col_w)
             val = s.value()  # -10 to +10
             y = int(mid_y - (val / 10.0) * (h / 2.5))
             points.append((x, y))
             
-        for i in range(len(points) - 1):
-            painter.drawLine(points[i][0], points[i][1], points[i+1][0], points[i+1][1])
+        if points:
+            painter.drawLine(0, int(mid_y), points[0][0], points[0][1])
+            for i in range(len(points) - 1):
+                painter.drawLine(points[i][0], points[i][1], points[i+1][0], points[i+1][1])
+            painter.drawLine(points[-1][0], points[-1][1], w, int(mid_y))
 
 
 class EqualizerWindow(QWidget):

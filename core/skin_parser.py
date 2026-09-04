@@ -173,24 +173,24 @@ class WinampSkin:
         pledit = self.bitmaps.get('pledit')
         if pledit and pledit.width() >= 260 and pledit.height() >= 100:
             self.sprites['pl_btn_add'] = (
-                QPixmap.fromImage(pledit.copy(11, 74, 30, 24)),
-                QPixmap.fromImage(pledit.copy(11, 74, 30, 24))
+                QPixmap.fromImage(pledit.copy(11, 81, 22, 18)),
+                QPixmap.fromImage(pledit.copy(11, 81, 22, 18))
             )
             self.sprites['pl_btn_rem'] = (
-                QPixmap.fromImage(pledit.copy(53, 74, 30, 24)),
-                QPixmap.fromImage(pledit.copy(53, 74, 30, 24))
+                QPixmap.fromImage(pledit.copy(40, 81, 22, 18)),
+                QPixmap.fromImage(pledit.copy(40, 81, 22, 18))
             )
             self.sprites['pl_btn_sel'] = (
-                QPixmap.fromImage(pledit.copy(94, 74, 30, 24)),
-                QPixmap.fromImage(pledit.copy(94, 74, 30, 24))
+                QPixmap.fromImage(pledit.copy(70, 81, 22, 18)),
+                QPixmap.fromImage(pledit.copy(70, 81, 22, 18))
             )
             self.sprites['pl_btn_misc'] = (
-                QPixmap.fromImage(pledit.copy(135, 74, 30, 24)),
-                QPixmap.fromImage(pledit.copy(135, 74, 30, 24))
+                QPixmap.fromImage(pledit.copy(100, 81, 22, 18)),
+                QPixmap.fromImage(pledit.copy(100, 81, 22, 18))
             )
             self.sprites['pl_btn_list'] = (
-                QPixmap.fromImage(pledit.copy(235, 74, 30, 24)),
-                QPixmap.fromImage(pledit.copy(235, 74, 30, 24))
+                QPixmap.fromImage(pledit.copy(232, 81, 22, 18)),
+                QPixmap.fromImage(pledit.copy(232, 81, 22, 18))
             )
 
         # 5. Masked Slider Knob PNG
