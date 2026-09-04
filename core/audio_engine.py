@@ -395,7 +395,7 @@ class AudioEngine(QObject):
                     # End of stream / stream severed
                     break
 
-                chunk = np.frombuffer(raw, dtype=np.float32).reshape(-1, 2)
+                chunk = np.frombuffer(raw, dtype=np.float32).copy().reshape(-1, 2)
                 try:
                     self._stream_queue.put(chunk, timeout=0.2)
                     self._stream_buffer_filled = True
@@ -420,10 +420,12 @@ class AudioEngine(QObject):
             if track.is_stream:
                 self.is_live_stream = True
                 self.raw_stereo_data = None
+                self._stream_residual = None
                 self._start_stream_worker(track)
             else:
                 self.is_live_stream = False
                 self._stop_stream_worker()
+                self._stream_residual = None
                 self._load_track_samples(track.filepath)
                 self.playback_sample_index = 0
 
@@ -464,13 +466,34 @@ class AudioEngine(QObject):
             return
 
         if self.is_live_stream:
-            try:
-                chunk = self._stream_queue.get_nowait()
-                self._stream_pos_sec += float(len(chunk)) / 44100.0
-                self.analyzer.feed_live_chunk(chunk)
-            except queue.Empty:
+            needed = frames
+            collected = []
+            
+            with self._stream_lock:
+                if self._stream_residual is not None and len(self._stream_residual) > 0:
+                    take = min(len(self._stream_residual), needed)
+                    collected.append(self._stream_residual[:take])
+                    self._stream_residual = self._stream_residual[take:]
+                    needed -= take
+
+                while needed > 0:
+                    try:
+                        q_chunk = self._stream_queue.get_nowait()
+                        take = min(len(q_chunk), needed)
+                        collected.append(q_chunk[:take])
+                        if take < len(q_chunk):
+                            self._stream_residual = q_chunk[take:]
+                        needed -= take
+                    except queue.Empty:
+                        break
+
+            if not collected:
                 outdata.fill(0)
                 return
+
+            chunk = np.concatenate(collected, axis=0) if len(collected) > 1 else collected[0]
+            self._stream_pos_sec += float(len(chunk)) / 44100.0
+            self.analyzer.feed_live_chunk(chunk)
 
             if len(chunk) < frames:
                 pad_len = frames - len(chunk)
@@ -502,11 +525,12 @@ class AudioEngine(QObject):
         left_gain = vol_factor * (1.0 - max(0.0, self.balance))
         right_gain = vol_factor * (1.0 + min(0.0, self.balance))
 
-        chunk[:, 0] *= left_gain
-        chunk[:, 1] *= right_gain
+        processed_chunk = np.empty_like(chunk, dtype=np.float32)
+        processed_chunk[:, 0] = chunk[:, 0] * left_gain
+        processed_chunk[:, 1] = chunk[:, 1] * right_gain
 
         # 2. REAL-TIME 10-BAND DSP EQUALIZER & PREAMP
-        processed = self.dsp_eq.process(chunk)
+        processed = self.dsp_eq.process(processed_chunk)
         outdata[:] = processed
 
     def play(self):
