@@ -20,7 +20,8 @@ DEFAULT_CONFIG = {
     "pl_pos": [150, 420],
     "show_eq": True,
     "show_pl": True,
-    "time_mode": "elapsed"  # "elapsed" | "remaining"
+    "time_mode": "elapsed",  # "elapsed" | "remaining"
+    "vis_sensitivity": 0.70  # 0.30 - 1.00 visualizer sensitivity
 }
 
 class ConfigManager:

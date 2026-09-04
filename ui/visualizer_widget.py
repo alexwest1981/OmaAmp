@@ -3,6 +3,8 @@ from PyQt6.QtWidgets import QWidget, QMenu
 from PyQt6.QtCore import Qt, QTimer, QPointF
 from PyQt6.QtGui import QPainter, QColor, QPen, QBrush, QFont, QLinearGradient, QPainterPath
 
+from core.i18n import i18n
+
 VIS_MODES = [
     ("spectrum", "📊 Spectrum Analyzer (Real FFT)"),
     ("oscilloscope", "〰️ Laser Oscilloscope (Real PCM)"),
@@ -13,15 +15,22 @@ VIS_MODES = [
 ]
 
 class VisualizerWidget(QWidget):
-    def __init__(self, theme_mgr, audio_engine, parent=None):
+    def __init__(self, theme_mgr, audio_engine, parent=None, config_mgr=None):
         super().__init__(parent)
         self.theme_mgr = theme_mgr
         self.audio = audio_engine
+        self.config_mgr = config_mgr
         self.mode_index = 0
         self.mode = VIS_MODES[self.mode_index][0]
         self.setMinimumHeight(54)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setToolTip("Click to cycle modes | Right-click for Visualizer Menu")
+        self.setToolTip("Click to cycle modes | Right-click for Visualizer & Sensitivity Menu")
+
+        # Initialize sensitivity from config if available
+        if self.config_mgr:
+            saved_sens = float(self.config_mgr.get("vis_sensitivity", 0.70))
+            if hasattr(self.audio, "analyzer"):
+                self.audio.analyzer.set_sensitivity(saved_sens)
 
         # 50 FPS high-smoothness render loop
         self.timer = QTimer(self)
@@ -39,12 +48,42 @@ class VisualizerWidget(QWidget):
 
     def _show_context_menu(self, global_pos):
         menu = QMenu(self)
+        
+        # Mode Selection
+        mode_menu = menu.addMenu("🎨 " + ("Visualizer-läge" if i18n.get_language() == "sv" else "Visualizer Mode"))
         for mode_key, mode_title in VIS_MODES:
-            act = menu.addAction(mode_title)
+            act = mode_menu.addAction(mode_title)
             act.setCheckable(True)
             act.setChecked(self.mode == mode_key)
             act.triggered.connect(lambda checked, m=mode_key: self.set_mode(m))
+
+        menu.addSeparator()
+
+        # Sensitivity Submenu
+        sens_menu = menu.addMenu("🎛️ " + ("Känslighet" if i18n.get_language() == "sv" else "Sensitivity"))
+        sens_options = [
+            (0.35, "35% - Extra Mjuk" if i18n.get_language() == "sv" else "35% - Extra Soft"),
+            (0.50, "50% - Mjuk" if i18n.get_language() == "sv" else "50% - Soft"),
+            (0.70, "70% - Normal (Rekommenderad)" if i18n.get_language() == "sv" else "70% - Normal (Recommended)"),
+            (0.85, "85% - Livlig" if i18n.get_language() == "sv" else "85% - High"),
+            (1.00, "100% - Max" if i18n.get_language() == "sv" else "100% - Max")
+        ]
+        curr_sens = getattr(self.audio.analyzer, "sensitivity", 0.70) if hasattr(self.audio, "analyzer") else 0.70
+        for s_val, s_label in sens_options:
+            act = sens_menu.addAction(s_label)
+            act.setCheckable(True)
+            act.setChecked(abs(curr_sens - s_val) < 0.05)
+            act.triggered.connect(lambda checked, v=s_val: self.set_sensitivity(v))
+
         menu.exec(global_pos)
+
+    def set_sensitivity(self, val):
+        if hasattr(self.audio, "analyzer"):
+            self.audio.analyzer.set_sensitivity(val)
+        if self.config_mgr:
+            self.config_mgr.set("vis_sensitivity", val)
+            self.config_mgr.save()
+        self.update()
 
     def set_mode(self, mode_key):
         self.mode = mode_key

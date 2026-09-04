@@ -29,8 +29,9 @@ class AudioAnalyzer:
         self.bars = np.zeros(self.num_bars, dtype=np.float32)
         self.peaks = np.zeros(self.num_bars, dtype=np.float32)
         self.peak_speeds = np.zeros(self.num_bars, dtype=np.float32)
-        self.decay = 0.82
-        self.gravity = 0.025
+        self.decay = 0.72
+        self.gravity = 0.035
+        self.sensitivity = 0.70  # Default balanced sensitivity (prevents pegging at top)
 
         # VU meter RMS values
         self.vu_left = 0.0
@@ -45,6 +46,10 @@ class AudioAnalyzer:
         self.num_matrix_cols = 32
         self.matrix_drops = np.random.uniform(0, 30, self.num_matrix_cols)
         self.matrix_speeds = np.random.uniform(0.4, 1.0, self.num_matrix_cols)
+
+    def set_sensitivity(self, val):
+        """Sets visualizer sensitivity multiplier (e.g. 0.3 to 1.5)."""
+        self.sensitivity = max(0.1, min(2.0, float(val)))
 
     def _compute_band_masks(self):
         self.freqs = np.fft.rfftfreq(self.window_size, 1.0 / self.sample_rate)
@@ -171,7 +176,7 @@ class AudioAnalyzer:
 
         # FFT Analysis
         windowed = chunk * self.hanning
-        fft_data = np.abs(np.fft.rfft(windowed))
+        fft_data = np.abs(np.fft.rfft(windowed)) / (self.window_size / 2.0)
 
         vol_factor = volume / 100.0
         
@@ -180,16 +185,18 @@ class AudioAnalyzer:
         for b in range(self.num_bars):
             mask = self.band_masks[b]
             if np.any(mask):
-                val = float(np.mean(fft_data[mask]))
+                val = float(np.max(fft_data[mask])) * 0.75 + float(np.mean(fft_data[mask])) * 0.25
             else:
                 val = 0.0
             
-            # Boost higher bands for visual balance (pink noise compensation)
-            boost = 1.0 + (b / self.num_bars) * 2.2
-            val_db = 20 * np.log10(val * boost + 1e-5)
-            # Map -48dB..0dB to 0..1
-            norm = float(np.clip((val_db + 42.0) / 42.0, 0.0, 1.0)) * vol_factor
-            raw_bands[b] = norm
+            # Subtle tilt for treble compensation (human ear perception)
+            tilt = 1.0 + (b / self.num_bars) * 1.5
+            val_db = 20.0 * np.log10(val * tilt + 1e-5)
+            # Map -48 dB .. -2 dB to 0.0 .. 1.0
+            norm = float(np.clip((val_db + 48.0) / 46.0, 0.0, 1.0))
+            # Apply dynamic power curve and sensitivity scaling
+            norm = (norm ** 1.3) * self.sensitivity * vol_factor
+            raw_bands[b] = float(np.clip(norm, 0.0, 1.0))
 
         # Smooth dynamics
         for i in range(self.num_bars):
@@ -202,7 +209,7 @@ class AudioAnalyzer:
             # Peak dots physics
             if self.bars[i] >= self.peaks[i]:
                 self.peaks[i] = self.bars[i]
-                self.peak_speeds[i] = 0.005
+                self.peak_speeds[i] = 0.006
             else:
                 self.peaks[i] -= self.peak_speeds[i]
                 self.peak_speeds[i] += self.gravity
@@ -214,11 +221,11 @@ class AudioAnalyzer:
             rms_l = float(np.sqrt(np.mean(l_chunk ** 2))) if len(l_chunk) > 0 else 0.0
             rms_r = float(np.sqrt(np.mean(r_chunk ** 2))) if len(r_chunk) > 0 else 0.0
             
-            # Apply dB scaling to VU
-            target_l = min(1.0, rms_l * 3.2 * vol_factor)
-            target_r = min(1.0, rms_r * 3.2 * vol_factor)
-            self.vu_left = self.vu_left * 0.7 + target_l * 0.3
-            self.vu_right = self.vu_right * 0.7 + target_r * 0.3
+            # Balanced VU level scaling (hovers nicely around 40-75% on standard music)
+            target_l = min(1.0, rms_l * 1.75 * vol_factor * self.sensitivity)
+            target_r = min(1.0, rms_r * 1.75 * vol_factor * self.sensitivity)
+            self.vu_left = self.vu_left * 0.65 + target_l * 0.35
+            self.vu_right = self.vu_right * 0.65 + target_r * 0.35
 
         return self.bars, self.peaks
 
@@ -244,7 +251,7 @@ class AudioAnalyzer:
             samples = np.pad(samples, (0, num_points - len(samples)))
 
         vol_factor = volume / 100.0
-        return samples[:num_points] * vol_factor * 1.5
+        return samples[:num_points] * vol_factor * (0.85 * self.sensitivity)
 
     def update_starfield(self, is_playing, current_position=0.0, volume=80):
         bass = float(np.mean(self.bars[:4])) if is_playing else 0.0

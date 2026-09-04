@@ -143,7 +143,7 @@ class MainWindow(QWidget):
         self.marquee.setFixedHeight(38)
         right_deck.addWidget(self.marquee)
 
-        self.vis = VisualizerWidget(self.theme_mgr, self.audio, self)
+        self.vis = VisualizerWidget(self.theme_mgr, self.audio, self, config_mgr=self.config)
         self.vis.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.vis.setMinimumHeight(80)
         self.vis.setFixedHeight(102)
