@@ -4,7 +4,11 @@ A genuine, standalone **Winamp 2.91 Classic Audio Player** built with Python, Qt
 
 Featuring a tileable responsive layout, real-time FFT spectrum analyzer / PCM oscilloscope, demoscene visualizer modes, retro 7-segment green phosphor LED time display, marquee scrolling track screen, 10-band IIR biquad graphic equalizer with presets, drag-and-drop playlist editor, and a fully customizable theme engine!
 
-![OmaAmp Preview](./screenshot.png)
+<p align="center">
+  <img src="./screenshots/preview1.png" width="32%" alt="Classic Retro - Spectrum Analyzer" />
+  <img src="./screenshots/preview2.png" width="32%" alt="Cyberpunk Neon - Laser Oscilloscope" />
+  <img src="./screenshots/preview3.png" width="32%" alt="Amber Phosphor - Analog VU Meters" />
+</p>
 
 ---
 
