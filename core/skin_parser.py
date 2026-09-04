@@ -169,6 +169,30 @@ class WinampSkin:
                     QPixmap.fromImage(shufrep.copy(69, 61, 23, 12))
                 )
 
+        # 4. Playlist Buttons (Pledit.bmp)
+        pledit = self.bitmaps.get('pledit')
+        if pledit and pledit.width() >= 260 and pledit.height() >= 100:
+            self.sprites['pl_btn_add'] = (
+                QPixmap.fromImage(pledit.copy(11, 74, 30, 24)),
+                QPixmap.fromImage(pledit.copy(11, 74, 30, 24))
+            )
+            self.sprites['pl_btn_rem'] = (
+                QPixmap.fromImage(pledit.copy(53, 74, 30, 24)),
+                QPixmap.fromImage(pledit.copy(53, 74, 30, 24))
+            )
+            self.sprites['pl_btn_sel'] = (
+                QPixmap.fromImage(pledit.copy(94, 74, 30, 24)),
+                QPixmap.fromImage(pledit.copy(94, 74, 30, 24))
+            )
+            self.sprites['pl_btn_misc'] = (
+                QPixmap.fromImage(pledit.copy(135, 74, 30, 24)),
+                QPixmap.fromImage(pledit.copy(135, 74, 30, 24))
+            )
+            self.sprites['pl_btn_list'] = (
+                QPixmap.fromImage(pledit.copy(235, 74, 30, 24)),
+                QPixmap.fromImage(pledit.copy(235, 74, 30, 24))
+            )
+
     def _extract_theme_colors(self):
         main_img = self.bitmaps.get('main')
         
@@ -232,7 +256,14 @@ class WinampSkin:
             self.colors['lcd_text_dim'] = self.vis_colors[0].lighter(140).name()
             self.colors['lcd_kbps'] = self.vis_colors[11].name()
 
-        # 3. Fallbacks
+        # 3. Smart Playlist Color Derivations
+        if 'playlist_bg' in self.colors and 'playlist_playing_bg' not in self.colors:
+            if 'playlist_selected_bg' in self.colors:
+                self.colors['playlist_playing_bg'] = self.colors['playlist_selected_bg']
+            else:
+                self.colors['playlist_playing_bg'] = QColor(self.colors['playlist_bg']).lighter(130).name()
+
+        # 4. Fallbacks
         defaults = {
             "chassis_bg": "#282932",
             "chassis_border": "#4e5062",

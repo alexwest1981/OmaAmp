@@ -329,20 +329,54 @@ class AudioEngine(QObject):
             self.position_changed.emit(target)
 
     def remove_track(self, index):
-        if 0 <= index < len(self.playlist):
-            if index == self.current_index:
-                self.stop()
-                self.playlist.pop(index)
-                if self.playlist:
-                    self.current_index = min(index, len(self.playlist) - 1)
-                else:
-                    self.current_index = -1
-            else:
-                if index < self.current_index:
-                    self.current_index -= 1
-                self.playlist.pop(index)
-            self.playlist_updated.emit()
-            self.save_playlist_state()
+        self.remove_indices([index])
+
+    def remove_indices(self, indices):
+        curr_track = self.current_track
+        for idx in sorted(indices, reverse=True):
+            if 0 <= idx < len(self.playlist):
+                self.playlist.pop(idx)
+        if curr_track and curr_track in self.playlist:
+            self.current_index = self.playlist.index(curr_track)
+        elif self.playlist:
+            self.current_index = max(0, min(self.current_index, len(self.playlist) - 1))
+        else:
+            self.stop()
+            self.current_index = -1
+        self.playlist_updated.emit()
+        self.save_playlist_state()
+
+    def sort_by_title(self):
+        curr_track = self.current_track
+        self.playlist.sort(key=lambda t: t.title.lower())
+        if curr_track and curr_track in self.playlist:
+            self.current_index = self.playlist.index(curr_track)
+        self.playlist_updated.emit()
+        self.save_playlist_state()
+
+    def sort_by_filename(self):
+        curr_track = self.current_track
+        self.playlist.sort(key=lambda t: t.filename.lower())
+        if curr_track and curr_track in self.playlist:
+            self.current_index = self.playlist.index(curr_track)
+        self.playlist_updated.emit()
+        self.save_playlist_state()
+
+    def randomize_playlist(self):
+        curr_track = self.current_track
+        random.shuffle(self.playlist)
+        if curr_track and curr_track in self.playlist:
+            self.current_index = self.playlist.index(curr_track)
+        self.playlist_updated.emit()
+        self.save_playlist_state()
+
+    def reverse_playlist(self):
+        curr_track = self.current_track
+        self.playlist.reverse()
+        if curr_track and curr_track in self.playlist:
+            self.current_index = self.playlist.index(curr_track)
+        self.playlist_updated.emit()
+        self.save_playlist_state()
 
     def clear_playlist(self):
         self.stop()

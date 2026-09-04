@@ -389,11 +389,11 @@ class MainWindow(QWidget):
         self.skinned_deck_container.setVisible(is_skinned)
         self.vector_deck_container.setVisible(not is_skinned)
 
-        if is_skinned:
-            self.setFixedWidth(550)
-        else:
-            self.setMinimumWidth(275)
-            self.setMaximumWidth(16777215)
+        # Allow flexible tiling in Hyprland and standard window managers
+        self.setMinimumWidth(280)
+        self.setMaximumWidth(16777215)
+        self.setMinimumHeight(240)
+        self.setMaximumHeight(16777215)
 
         self.setStyleSheet(f"""
             MainWindow, QWidget {{

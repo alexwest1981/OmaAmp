@@ -141,7 +141,7 @@ class SkinnedEqualizerWidget(QWidget):
         if eqmain and not eqmain.isNull() and eqmain.height() >= 295:
             for i in range(10):
                 bx = 78 + i * 18
-                track = eqmain.copy(13 + i * 15, 237, 13, 56)
+                track = eqmain.copy(13 + i * 15, 237, 13, 44)
                 painter.drawImage(bx, 38, track)
 
         # 3. Live Frequency Response Curve (x=86, y=17, w=113, h=19)
