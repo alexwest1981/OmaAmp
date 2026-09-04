@@ -30,7 +30,6 @@ class WinampSkin:
     def _load_from_zip(self, zip_path):
         try:
             with zipfile.ZipFile(zip_path, 'r') as z:
-                # Map lowercase names to actual archive names
                 name_map = {n.lower(): n for n in z.namelist()}
 
                 for lower_name, real_name in name_map.items():
@@ -171,30 +170,69 @@ class WinampSkin:
                 )
 
     def _extract_theme_colors(self):
-        # Extract base chassis colors from Main.bmp or Titlebar.bmp
         main_img = self.bitmaps.get('main')
+        
+        # 1. Accurately sample the chassis background from the bottom bezel
         if main_img and not main_img.isNull():
-            # Sample background color from chassis bezel
-            sample_col = main_img.pixelColor(min(10, main_img.width() - 1), min(10, main_img.height() - 1))
-            self.colors['chassis_bg'] = sample_col.name()
-            # Darker border
-            self.colors['chassis_border'] = sample_col.darker(130).name()
-            self.colors['panel_bg'] = sample_col.darker(160).name()
-            self.colors['button_bg'] = sample_col.lighter(110).name()
+            w = main_img.width()
+            h = main_img.height()
+            
+            # Sample multiple points on the bottom chassis bezel
+            sample_points = [
+                (int(w * 0.4), min(h - 8, 108)),
+                (int(w * 0.6), min(h - 8, 108)),
+                (int(w * 0.8), min(h - 8, 108)),
+                (int(w * 0.9), min(h - 8, 108)),
+                (20, min(h - 8, 108))
+            ]
+            samples = [main_img.pixelColor(x, y) for x, y in sample_points]
+            avg_r = int(sum(c.red() for c in samples) / len(samples))
+            avg_g = int(sum(c.green() for c in samples) / len(samples))
+            avg_b = int(sum(c.blue() for c in samples) / len(samples))
+            
+            chassis_col = QColor(avg_r, avg_g, avg_b)
+            self.colors['chassis_bg'] = chassis_col.name()
+            
+            # Dynamic contrast detection (Luminance)
+            luminance = (0.299 * avg_r + 0.587 * avg_g + 0.114 * avg_b)
+            if luminance > 125:
+                # Light/Silver/Aluminum Skin
+                self.colors['chassis_border'] = chassis_col.darker(140).name()
+                self.colors['panel_bg'] = chassis_col.darker(110).name()
+                self.colors['button_bg'] = chassis_col.lighter(105).name()
+                self.colors['button_border'] = chassis_col.darker(130).name()
+                self.colors['button_text'] = "#101218"
+                self.colors['titlebar_text'] = "#101218"
+            else:
+                # Dark/Obsidian/Classic Skin
+                self.colors['chassis_border'] = chassis_col.lighter(130).name()
+                self.colors['panel_bg'] = chassis_col.darker(150).name()
+                self.colors['button_bg'] = chassis_col.lighter(115).name()
+                self.colors['button_border'] = chassis_col.lighter(130).name()
+                self.colors['button_text'] = "#d4d8e8"
+                self.colors['titlebar_text'] = "#00e5ff"
 
-        # Visualizer colors from viscolor
+            # Sample LCD background from display area (50, 25)
+            lcd_sample = main_img.pixelColor(50, 25)
+            if 'lcd_bg' not in self.colors:
+                self.colors['lcd_bg'] = lcd_sample.name()
+
+        # 2. Visualizer Colors from VISCOLOR.TXT
         if len(self.vis_colors) >= 24:
             self.colors['vis_bg'] = self.vis_colors[0].name()
+            self.colors['lcd_bg'] = self.vis_colors[0].name()
             self.colors['vis_peaks'] = self.vis_colors[23].name()
             self.colors['vis_bars_low'] = self.vis_colors[17].name()   # bottom of spec
             self.colors['vis_bars_mid'] = self.vis_colors[10].name()   # middle of spec
             self.colors['vis_bars_high'] = self.vis_colors[2].name()   # top of spec
             self.colors['vis_oscilloscope'] = self.vis_colors[18].name()
-            self.colors['lcd_text'] = self.vis_colors[17].name()
-            self.colors['lcd_text_dim'] = self.vis_colors[17].darker(250).name()
+            
+            # LCD text color from top of spec or bright color
+            self.colors['lcd_text'] = self.vis_colors[2].name()
+            self.colors['lcd_text_dim'] = self.vis_colors[0].lighter(140).name()
             self.colors['lcd_kbps'] = self.vis_colors[11].name()
 
-        # Default fallbacks if not explicitly defined
+        # 3. Fallbacks
         defaults = {
             "chassis_bg": "#282932",
             "chassis_border": "#4e5062",

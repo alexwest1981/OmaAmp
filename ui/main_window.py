@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QSlider, QFileDialog,
     QFrame, QSizePolicy
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QColor, QIcon, QDragEnterEvent, QDropEvent
 
 from ui.lcd_display import LcdDisplay, MarqueeDisplay
@@ -411,3 +411,35 @@ class MainWindow(QWidget):
             }}
         """)
         self.lbl_title.setStyleSheet(f"color: {title_text};")
+
+        # Apply authentic Winamp button sprites if skin provides them
+        skin = self.theme_mgr.active_skin
+        if skin and skin.sprites:
+            sprites = skin.sprites
+            btn_map = [
+                (self.btn_prev, 'btn_prev'),
+                (self.btn_play, 'btn_play'),
+                (self.btn_pause, 'btn_pause'),
+                (self.btn_stop, 'btn_stop'),
+                (self.btn_next, 'btn_next'),
+                (self.btn_eject, 'btn_eject')
+            ]
+            for btn, s_name in btn_map:
+                if s_name in sprites:
+                    icon_pix = sprites[s_name][0]
+                    btn.setIcon(QIcon(icon_pix))
+                    btn.setIconSize(QSize(icon_pix.width(), icon_pix.height()))
+                    btn.setText("")
+        else:
+            self.btn_prev.setIcon(QIcon())
+            self.btn_prev.setText("|<<")
+            self.btn_play.setIcon(QIcon())
+            self.btn_play.setText("▶")
+            self.btn_pause.setIcon(QIcon())
+            self.btn_pause.setText("❚❚")
+            self.btn_stop.setIcon(QIcon())
+            self.btn_stop.setText("■")
+            self.btn_next.setIcon(QIcon())
+            self.btn_next.setText(">>|")
+            self.btn_eject.setIcon(QIcon())
+            self.btn_eject.setText("⏏")
