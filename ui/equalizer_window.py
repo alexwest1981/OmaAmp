@@ -80,7 +80,7 @@ class EqualizerWindow(QWidget):
         skinned_layout.setContentsMargins(0, 0, 0, 0)
         self.skinned_eq = SkinnedEqualizerWidget(self.theme_mgr, self)
         self.skinned_eq.eq_changed.connect(self._on_skinned_eq_changed)
-        skinned_layout.addWidget(self.skinned_eq, alignment=Qt.AlignmentFlag.AlignCenter)
+        skinned_layout.addWidget(self.skinned_eq)
         main_layout.addWidget(self.skinned_eq_container)
 
         # 2. Vector Equalizer Container
@@ -197,9 +197,9 @@ class EqualizerWindow(QWidget):
         self.eq_changed.emit(bands, preamp)
 
     def apply_theme(self):
-        # Always use the responsive tile-optimized equalizer engine
-        self.skinned_eq_container.setVisible(False)
-        self.vector_eq_container.setVisible(True)
+        is_skinned = (self.theme_mgr.active_skin is not None)
+        self.skinned_eq_container.setVisible(is_skinned)
+        self.vector_eq_container.setVisible(not is_skinned)
         
         bg = self.theme_mgr.hex("chassis_bg", "#282932")
         border = self.theme_mgr.hex("chassis_border", "#4e5062")

@@ -16,7 +16,9 @@ class SkinnedPlayerWidget(QWidget):
         self.base_w = 275
         self.base_h = 116
         self.scale = 2.0
-        self.setFixedSize(550, 232)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.setMinimumWidth(275)
+        self.setMinimumHeight(116)
         
         self.is_dragging_seek = False
         self.is_dragging_vol = False
@@ -37,6 +39,13 @@ class SkinnedPlayerWidget(QWidget):
         self.scroll_timer.timeout.connect(self._on_scroll)
         self.scroll_timer.start()
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        s = max(0.1, self.width() / float(self.base_w))
+        target_h = int(self.base_h * s)
+        if self.height() != target_h:
+            self.setFixedHeight(target_h)
+
     def _on_tick(self):
         self.update()
 
@@ -52,7 +61,8 @@ class SkinnedPlayerWidget(QWidget):
     # Hit Testing & Mouse Interactions
     # -------------------------------------------------------------------------
     def _map_to_base(self, pos: QPoint):
-        return QPoint(int(pos.x() / self.scale), int(pos.y() / self.scale))
+        s = max(0.1, self.width() / float(self.base_w))
+        return QPoint(int(pos.x() / s), int(pos.y() / s))
 
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -159,9 +169,11 @@ class SkinnedPlayerWidget(QWidget):
     # Winamp 2.x Precision Bitmap Compositing
     # -------------------------------------------------------------------------
     def paintEvent(self, event):
+        s = max(0.1, self.width() / float(self.base_w))
+        self.scale = s
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
-        painter.scale(self.scale, self.scale)
+        painter.scale(s, s)
 
         skin = self.theme_mgr.active_skin
         bitmaps = skin.bitmaps if skin else {}

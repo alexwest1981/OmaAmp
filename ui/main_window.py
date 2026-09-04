@@ -90,7 +90,7 @@ class MainWindow(QWidget):
         self.skinned_player.open_vis_studio.connect(self._open_vis_studio)
         self.skinned_player.toggle_eq.connect(self._toggle_eq)
         self.skinned_player.toggle_pl.connect(self._toggle_pl)
-        skinned_layout.addWidget(self.skinned_player, alignment=Qt.AlignmentFlag.AlignCenter)
+        skinned_layout.addWidget(self.skinned_player)
         player_layout.addWidget(self.skinned_deck_container)
 
         # 2. Vector / Responsive Deck Container (for pure JSON themes)
@@ -384,9 +384,9 @@ class MainWindow(QWidget):
         trough = self.theme_mgr.hex("slider_trough", "#0a0a0e")
         thumb = self.theme_mgr.hex("slider_thumb", "#5a5d72")
 
-        # Always use the responsive tile-optimized deck engine for all skins and themes
-        self.skinned_deck_container.setVisible(False)
-        self.vector_deck_container.setVisible(True)
+        is_skinned = (self.theme_mgr.active_skin is not None)
+        self.skinned_deck_container.setVisible(is_skinned)
+        self.vector_deck_container.setVisible(not is_skinned)
 
         # Allow flexible tiling in Hyprland and standard window managers
         self.setMinimumWidth(280)
