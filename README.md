@@ -39,18 +39,22 @@ Featuring a tileable responsive layout, real-time FFT spectrum analyzer / PCM os
   6. **🔘 Polar Frequency Ring:** 360-degree radial bass visualizer.
   * Click **`VIS`** to open **Visualizer Studio** in a resizable window with Fullscreen mode!
 
+* **📻 Online Radio & YouTube Stream Studio (`RADIO`):**
+  * Built-in searchable internet radio directory featuring curated electronic, synthwave, ambient, rock, and jazz stations.
+  * YouTube audio streaming with live background metadata extraction and playback.
+  * Direct custom stream URL playback (`http://`, `https://`, Shoutcast `.pls`).
+
 * **📜 Drag & Drop Playlist Editor (`PL`):**
   * **Drag & Drop:** Simply drag MP3, FLAC, WAV, OGG, AAC files or folders straight from your file manager into OmaAmp!
   * Instant search filter to find tracks in massive libraries.
   * Automatic state save and restore on application restart (`~/.config/omaamp/playlist.json`).
-  * `💾 M3U` button to export and import standard `.m3u` playlists.
+  * `💾 M3U` / `PLS` export and import for standard playlist formats.
 
-* **🎨 Winamp 2.x Skin Engine (`.wsz` / `.zip`) & Custom Themes:**
-  * **Direct `.wsz` Winamp Skin Support:** Drag & drop any `.wsz` or `.zip` skin downloaded from the web directly into OmaAmp!
-  * **65,000+ Classic Skins Compatible:** Instant 1-click access to the [Winamp Skin Museum](https://skins.webamp.org/) directly from the `SKIN` dialog!
-  * **Bitmap Sprite Rendering:** Automatically parses `MAIN.BMP`, `CBUTTONS.BMP`, `NUMBERS.BMP`, `VISCOLOR.TXT`, `PLEDIT.TXT`, and `SHUFREP.BMP`.
-  * **Built-in JSON Themes:** Comes with *Classic Retro, Modern Obsidian, Cyberpunk Neon 2077, and Amber CRT*.
-  * **Theme Creator:** Click **`SKIN`** -> **`🎨 Create JSON Theme`** to design and customize your own color schemes!
+* **🎨 Native Theme Engine & Visual Theme Studio (`SKIN`):**
+  * **Pre-installed Themes:** *Classic Retro, Cyberpunk Neon, Amber CRT Phosphor, Brushed Titanium, and Modern Dark*.
+  * **Live Theme Studio:** In-app visual theme creator with instant color picker and palette previews.
+  * **Theme Sharing:** Built-in community hub integration to download and share custom theme schemes.
+  * **Localization:** 1-click instant language toggle between English and Swedish (**SV / EN**).
 
 ---
 
