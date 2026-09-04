@@ -70,6 +70,10 @@ class VisualizerWidget(QWidget):
         bg_col = self.theme_mgr.color("vis_bg", "#000000")
         painter.fillRect(self.rect(), bg_col)
 
+        border_col = self.theme_mgr.color("panel_border", "#22222a")
+        painter.setPen(QPen(border_col, 1))
+        painter.drawRect(0, 0, self.width() - 1, self.height() - 1)
+
         w = self.width()
         h = self.height()
 
@@ -92,7 +96,7 @@ class VisualizerWidget(QWidget):
             self.audio.is_playing, self.audio.current_position, self.audio.volume
         )
         num_bars = len(bars)
-        bar_width = int(w / num_bars) - 1
+        bar_width = int((w - 4) / num_bars) - 1
         bar_width = max(3, bar_width)
 
         col_low = self.theme_mgr.color("vis_bars_low", "#00ff44")
@@ -101,27 +105,31 @@ class VisualizerWidget(QWidget):
         col_peak = self.theme_mgr.color("vis_peaks", "#ffffff")
 
         for i in range(num_bars):
-            x = i * (bar_width + 1) + 2
-            bar_h = int(bars[i] * (h - 4))
-            peak_y = h - 2 - int(peaks[i] * (h - 4))
+            x = i * (bar_width + 1) + 3
+            bar_h = int(bars[i] * (h - 6))
+            peak_y = h - 3 - int(peaks[i] * (h - 6))
 
             segment_h = 2
             gap = 1
-            y = h - 2
-            while y > (h - 2 - bar_h):
-                rel_height = (h - 2 - y) / max(1, (h - 4))
-                if rel_height < 0.55:
-                    seg_col = col_low
-                elif rel_height < 0.85:
-                    seg_col = col_mid
-                else:
-                    seg_col = col_high
+            y = h - 3
+            if bar_h <= 0:
+                # Idle baseline dot
+                painter.fillRect(x, y - segment_h, bar_width, segment_h, col_low)
+            else:
+                while y > (h - 3 - bar_h):
+                    rel_height = (h - 3 - y) / max(1, (h - 6))
+                    if rel_height < 0.55:
+                        seg_col = col_low
+                    elif rel_height < 0.85:
+                        seg_col = col_mid
+                    else:
+                        seg_col = col_high
 
-                painter.fillRect(x, y - segment_h, bar_width, segment_h, seg_col)
-                y -= (segment_h + gap)
+                    painter.fillRect(x, y - segment_h, bar_width, segment_h, seg_col)
+                    y -= (segment_h + gap)
 
-            if peaks[i] > 0.05:
-                painter.fillRect(x, peak_y, bar_width, 1, col_peak)
+                if peaks[i] > 0.05:
+                    painter.fillRect(x, peak_y, bar_width, 1, col_peak)
 
     def _draw_oscilloscope(self, painter, w, h):
         wave = self.audio.analyzer.get_real_waveform(

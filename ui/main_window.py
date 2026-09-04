@@ -120,33 +120,36 @@ class MainWindow(QWidget):
 
         player_layout.addLayout(title_row)
 
-        # Widescreen LCD Container (Album Art + Time Display + Marquee + Spectrum Visualizer)
+        # Widescreen LCD Container (Album Art + Time on Left, Marquee + Visualizer on Right)
         self.lcd_container = QFrame()
         self.lcd_container.setObjectName("LcdContainer")
         lcd_layout = QHBoxLayout(self.lcd_container)
-        lcd_layout.setContentsMargins(4, 2, 4, 2)
-        lcd_layout.setSpacing(6)
+        lcd_layout.setContentsMargins(4, 4, 4, 4)
+        lcd_layout.setSpacing(8)
 
-        # 1. 7-Segment LED Time Display & Album Art
+        # 1. Left: Dedicated 96x96 Album Art with Time Display directly underneath
         self.lcd = LcdDisplay(self.theme_mgr, self)
-        self.lcd.setFixedWidth(210)
-        self.lcd.setFixedHeight(54)
+        self.lcd.setFixedWidth(136)
+        self.lcd.setFixedHeight(144)
         lcd_layout.addWidget(self.lcd)
 
-        # 2. Scrolling Song Title Marquee
+        # 2. Right: Top Title Marquee + Bottom Real-time Spectrum Visualizer
+        right_deck = QVBoxLayout()
+        right_deck.setContentsMargins(0, 0, 0, 0)
+        right_deck.setSpacing(4)
+
         self.marquee = MarqueeDisplay(self.theme_mgr, self)
-        self.marquee.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        self.marquee.setFixedHeight(54)
-        lcd_layout.addWidget(self.marquee)
+        self.marquee.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.marquee.setFixedHeight(38)
+        right_deck.addWidget(self.marquee)
 
-        # 3. Spectrum Visualizer
         self.vis = VisualizerWidget(self.theme_mgr, self.audio, self)
-        self.vis.setMinimumWidth(80)
-        self.vis.setMaximumWidth(280)
-        self.vis.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
-        self.vis.setFixedHeight(54)
-        lcd_layout.addWidget(self.vis)
+        self.vis.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.vis.setMinimumHeight(80)
+        self.vis.setFixedHeight(102)
+        right_deck.addWidget(self.vis)
 
+        lcd_layout.addLayout(right_deck)
         player_layout.addWidget(self.lcd_container)
 
         # Sliders Row (Volume + Balance + Full-Width Seek Bar)
