@@ -120,23 +120,23 @@ class MainWindow(QWidget):
 
         player_layout.addLayout(title_row)
 
-        # Widescreen LCD Container (Clock + Marquee + Spectrum Visualizer)
+        # Widescreen LCD Container (Album Art + Time Display + Marquee + Spectrum Visualizer)
         self.lcd_container = QFrame()
         self.lcd_container.setObjectName("LcdContainer")
         lcd_layout = QHBoxLayout(self.lcd_container)
         lcd_layout.setContentsMargins(4, 2, 4, 2)
         lcd_layout.setSpacing(6)
 
-        # 1. 7-Segment LED Time Display
+        # 1. 7-Segment LED Time Display & Album Art
         self.lcd = LcdDisplay(self.theme_mgr, self)
-        self.lcd.setFixedWidth(130)
-        self.lcd.setFixedHeight(40)
+        self.lcd.setFixedWidth(210)
+        self.lcd.setFixedHeight(54)
         lcd_layout.addWidget(self.lcd)
 
         # 2. Scrolling Song Title Marquee
         self.marquee = MarqueeDisplay(self.theme_mgr, self)
         self.marquee.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        self.marquee.setFixedHeight(40)
+        self.marquee.setFixedHeight(54)
         lcd_layout.addWidget(self.marquee)
 
         # 3. Spectrum Visualizer
@@ -144,7 +144,7 @@ class MainWindow(QWidget):
         self.vis.setMinimumWidth(80)
         self.vis.setMaximumWidth(280)
         self.vis.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
-        self.vis.setFixedHeight(40)
+        self.vis.setFixedHeight(54)
         lcd_layout.addWidget(self.vis)
 
         player_layout.addWidget(self.lcd_container)

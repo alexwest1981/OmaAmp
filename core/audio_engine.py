@@ -31,6 +31,8 @@ class Track:
         self.samplerate = 44100
         self.channels = 2
         self.extra = extra or {}
+        self.cover_art_bytes = None
+        self.cover_art_path = None
 
         if not self.is_stream and os.path.exists(self.filepath):
             self.load_metadata()
@@ -62,6 +64,30 @@ class Track:
                         self.artist = str(artist[0] if isinstance(artist, list) else artist)
                     if album:
                         self.album = str(album[0] if isinstance(album, list) else album)
+
+                    # Extract Embedded Cover Art
+                    for key in tags.keys():
+                        if str(key).startswith("APIC"):
+                            apic = tags[key]
+                            if hasattr(apic, "data"):
+                                self.cover_art_bytes = bytes(apic.data)
+                                break
+                    if not self.cover_art_bytes and "covr" in tags:
+                        covr = tags["covr"]
+                        if covr and len(covr) > 0:
+                            self.cover_art_bytes = bytes(covr[0])
+
+                if not self.cover_art_bytes and hasattr(audio, "pictures") and audio.pictures:
+                    self.cover_art_bytes = bytes(audio.pictures[0].data)
+
+            # Check folder for cover image if not embedded
+            if not self.cover_art_bytes:
+                dir_p = os.path.dirname(self.filepath)
+                for name in ["cover.jpg", "cover.png", "folder.jpg", "folder.png", "album.jpg", "albumart.jpg", "front.jpg"]:
+                    full_p = os.path.join(dir_p, name)
+                    if os.path.exists(full_p):
+                        self.cover_art_path = full_p
+                        break
         except Exception:
             pass
 

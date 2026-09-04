@@ -19,7 +19,7 @@ class VisualizerWidget(QWidget):
         self.audio = audio_engine
         self.mode_index = 0
         self.mode = VIS_MODES[self.mode_index][0]
-        self.setMinimumHeight(42)
+        self.setMinimumHeight(54)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setToolTip("Click to cycle modes | Right-click for Visualizer Menu")
 
