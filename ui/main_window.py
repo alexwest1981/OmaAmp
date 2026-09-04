@@ -25,6 +25,7 @@ class MainWindow(QWidget):
         self.setMinimumSize(275, 200)
         self.resize(550, 720)
         self.setAcceptDrops(True)
+        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
 
         # Child modular components (embedded as widget decks)
         self.eq_widget = EqualizerWindow(self.theme_mgr, parent=self)

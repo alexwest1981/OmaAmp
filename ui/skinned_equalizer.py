@@ -110,15 +110,14 @@ class SkinnedEqualizerWidget(QWidget):
 
     def _get_masked_knob(self, eq_ex, eqmain):
         if self._cached_knob is None:
-            source = eq_ex if (eq_ex and not eq_ex.isNull() and eq_ex.width() >= 14) else eqmain
-            if source and not source.isNull():
-                src_y = 0 if source == eq_ex else 164
-                knob_img = source.copy(0, src_y, 14, 11).convertToFormat(QImage.Format.Format_ARGB32)
-                key_col = knob_img.pixelColor(0, 0)
-                for y in range(knob_img.height()):
-                    for x in range(knob_img.width()):
-                        if knob_img.pixelColor(x, y) == key_col:
-                            knob_img.setPixelColor(x, y, QColor(0, 0, 0, 0))
+            if eqmain and not eqmain.isNull():
+                knob_img = eqmain.copy(78, 59, 14, 11).convertToFormat(QImage.Format.Format_ARGB32)
+                # Apply transparency mask to 4 corners
+                for pt in [(0,0), (1,0), (0,1), (12,0), (13,0), (13,1), (0,9), (0,10), (1,10), (13,9), (12,10), (13,10)]:
+                    knob_img.setPixelColor(pt[0], pt[1], QColor(0, 0, 0, 0))
+                self._cached_knob = knob_img
+            elif eq_ex and not eq_ex.isNull():
+                knob_img = eq_ex.copy(0, 0, 14, 11).convertToFormat(QImage.Format.Format_ARGB32)
                 self._cached_knob = knob_img
         return self._cached_knob
 

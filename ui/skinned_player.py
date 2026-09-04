@@ -297,15 +297,15 @@ class SkinnedPlayerWidget(QWidget):
 
     def _draw_specs(self, painter, monoster_img):
         painter.setFont(QFont("Monospace", 5, QFont.Weight.Bold))
-        col_kbps = self.theme_mgr.color("lcd_kbps", "#00ff33")
+        col_kbps = self.theme_mgr.color("lcd_kbps", "#ffffff")
         painter.setPen(col_kbps)
 
         kbps = self.audio.current_track.bitrate if self.audio.current_track else 320
         khz = int(self.audio.current_track.samplerate / 1000) if self.audio.current_track else 44
 
-        painter.drawText(112, 47, f"{kbps}K")
-        painter.drawText(148, 47, f"{khz}K")
-        painter.drawText(184, 47, "STEREO")
+        painter.drawText(112, 48, f"{kbps:3d}K")
+        painter.drawText(148, 48, f"{khz:2d}K")
+        painter.drawText(182, 48, "STEREO")
 
     def _draw_sliders(self, painter, bitmaps):
         vol_img = bitmaps.get('volume')
