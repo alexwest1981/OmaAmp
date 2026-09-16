@@ -8,6 +8,8 @@ import urllib.request
 import urllib.error
 import urllib.parse
 
+from core.safe_zip import extract_zip_safely
+
 CONFIG_DIR = os.path.expanduser("~/.config/omaamp")
 GITHUB_CONFIG_FILE = os.path.join(CONFIG_DIR, "github.json")
 OFFICIAL_CATALOG_URL = "https://raw.githubusercontent.com/alexwest1981/omaamp-themes/main/catalog.json"
@@ -249,17 +251,15 @@ class GitHubSyncManager:
                                 theme_id = tdata.get("id", theme_id)
                             except Exception:
                                 pass
-                    for m in members:
-                        parts_m = m.split("/", 1)
-                        if len(parts_m) > 1 and parts_m[1]:
-                            rel_path = parts_m[1]
-                            target_file = os.path.join(dest_theme_folder, rel_path)
-                            if m.endswith("/"):
-                                os.makedirs(target_file, exist_ok=True)
-                            else:
-                                os.makedirs(os.path.dirname(target_file), exist_ok=True)
-                                with open(target_file, "wb") as out_f:
-                                    out_f.write(z.read(m))
+
+                    # Uppackningen går genom zip-slip-skyddet (core/safe_zip.py): GitHub-
+                    # arkivet har alltid en toppmapp (repo-gren/) som tas bort först, och
+                    # varje post kontrolleras innan den skrivs. En post som pekar utanför
+                    # temamappen nekas och redovisas i stället för att skrivas — arkivet
+                    # kommer från ett repo någon annan äger.
+                    report = extract_zip_safely(z, dest_theme_folder, strip_prefix=1)
+                    if report.skipped:
+                        print(f"Theme {repo}: refused {len(report.skipped)} member(s): {report.summary()}")
 
                 if os.path.exists(temp_zip):
                     os.remove(temp_zip)

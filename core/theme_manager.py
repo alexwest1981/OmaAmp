@@ -7,6 +7,7 @@ from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtGui import QColor, QPixmap, QBrush, QImage
 from core.skin_parser import WinampSkin
 from core.github_sync import GitHubSyncManager
+from core.safe_zip import extract_zip_safely
 
 CONFIG_DIR = os.path.expanduser("~/.config/omaamp")
 USER_THEMES_DIR = os.path.join(CONFIG_DIR, "themes")
@@ -116,8 +117,12 @@ class ThemeManager(QObject):
                 target_f = os.path.join(dir_path, tid)
                 if not os.path.exists(target_f):
                     os.makedirs(target_f, exist_ok=True)
-                    with zipfile.ZipFile(fpath, "r") as z:
-                        z.extractall(target_f)
+                    # Genom zip-slip-skyddet: `extractall` skriver post för post utan att
+                    # fråga var de hamnar, och ett temapaket är en fil användaren fick
+                    # någonstans ifrån. Nekade poster redovisas nedan.
+                    report = extract_zip_safely(fpath, target_f)
+                    if report.skipped:
+                        print(f"Refused {len(report.skipped)} member(s) in {fpath}: {report.summary()}")
                 t_json = os.path.join(target_f, "theme.json")
                 if os.path.exists(t_json):
                     with open(t_json, "r", encoding="utf-8") as f:
