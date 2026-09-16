@@ -8,11 +8,16 @@ echo "🎵 Installing OmaAmp (Winamp 2.91 Classic for Linux)..."
 # Ensure target directories exist
 mkdir -p "$HOME/.local/bin"
 mkdir -p "$HOME/.local/share/applications"
+mkdir -p "$HOME/.local/share/icons/hicolor/512x512/apps"
+mkdir -p "$HOME/.local/share/icons/hicolor/256x256/apps"
 mkdir -p "$HOME/.local/share/icons/hicolor/128x128/apps"
 mkdir -p "$HOME/.config/omaamp/themes"
 
-# Copy Icon
-cp "$REPO_DIR/icon.png" "$HOME/.local/share/icons/hicolor/128x128/apps/omaamp.png"
+# Copy icons: the store master (512) plus the two desktop sizes. 8-bit RGBA —
+# the old single icon was 16-bit, which desktop icon caches handle inconsistently.
+for size in 512 256 128; do
+  cp "$REPO_DIR/ikon/omaamp-$size.png" "$HOME/.local/share/icons/hicolor/${size}x${size}/apps/omaamp.png"
+done
 
 # Create/Update launcher in ~/.local/bin/omaamp
 cat << 'EOF' > "$HOME/.local/bin/omaamp"
