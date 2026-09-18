@@ -32,11 +32,25 @@ class VisualizerWidget(QWidget):
             if hasattr(self.audio, "analyzer"):
                 self.audio.analyzer.set_sensitivity(saved_sens)
 
-        # 50 FPS high-smoothness render loop
+        # 50 FPS medan widgeten syns OCH spelaren är igång. Loopen startades
+        # förut oavsett och tickade även med fönstret dolt och musiken stoppad.
         self.timer = QTimer(self)
         self.timer.setInterval(20)
         self.timer.timeout.connect(self.update_frame)
-        self.timer.start()
+
+    def _sync_timer(self) -> None:
+        if getattr(self.audio, "is_playing", False) and self.isVisible():
+            self.timer.start()
+        else:
+            self.timer.stop()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._sync_timer()
+
+    def hideEvent(self, event):
+        super().hideEvent(event)
+        self.timer.stop()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -94,7 +108,9 @@ class VisualizerWidget(QWidget):
         self.update()
 
     def set_playing(self, is_playing):
-        pass  # reads directly from self.audio.is_playing
+        """Läser sin data ur self.audio, men renderingsloopen behövs bara
+        medan något spelas och widgeten syns."""
+        self._sync_timer()
 
     def set_volume(self, volume):
         pass  # reads directly from self.audio.volume

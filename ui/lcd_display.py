@@ -31,11 +31,24 @@ class LcdDisplay(QWidget):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setToolTip("Click time to toggle Elapsed / Remaining time\nAlbum Art / Track Cover")
 
-        # Vinyl spinning animation timer
+        # Vinylen snurrar bara medan något spelas och skivan syns.
         self.anim_timer = QTimer(self)
         self.anim_timer.setInterval(40)
         self.anim_timer.timeout.connect(self._animate_vinyl)
-        self.anim_timer.start()
+
+    def _sync_anim_timer(self) -> None:
+        if self.is_playing and self.isVisible():
+            self.anim_timer.start()
+        else:
+            self.anim_timer.stop()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._sync_anim_timer()
+
+    def hideEvent(self, event):
+        super().hideEvent(event)
+        self.anim_timer.stop()
 
     def _animate_vinyl(self):
         if self.is_playing and not self.cover_pixmap:
@@ -83,6 +96,7 @@ class LcdDisplay(QWidget):
 
     def set_playing(self, playing):
         self.is_playing = playing
+        self._sync_anim_timer()
         self.update()
 
     def paintEvent(self, event):
@@ -253,11 +267,18 @@ class MarqueeDisplay(QWidget):
         self.scroll_pos = 0
         self.setFixedHeight(38)
 
-        # Marquee scroll timer
+        # Marquee-timern behöver bara gå medan texten syns.
         self.scroll_timer = QTimer(self)
         self.scroll_timer.setInterval(110)
         self.scroll_timer.timeout.connect(self._scroll_text)
+
+    def showEvent(self, event):
+        super().showEvent(event)
         self.scroll_timer.start()
+
+    def hideEvent(self, event):
+        super().hideEvent(event)
+        self.scroll_timer.stop()
 
     def set_track(self, track):
         if track:

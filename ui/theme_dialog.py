@@ -1,5 +1,6 @@
 import os
 import json
+import threading
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
     QPushButton, QColorDialog, QLineEdit, QFormLayout, QMessageBox, QGroupBox,
@@ -9,6 +10,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QUrl, QSize
 from PyQt6.QtGui import QFont, QColor, QDesktopServices, QIcon, QPixmap
 from core.i18n import _, i18n
+from ui.workers import BackgroundWorker
 
 
 class ThemeDialog(QDialog):
@@ -16,6 +18,7 @@ class ThemeDialog(QDialog):
         super().__init__(parent)
         self.theme_mgr = theme_mgr
         self.github = theme_mgr.github
+        self._bg_workers = set()
         
         self.setWindowTitle(_("theme_window_title"))
         self.resize(620, 560)
@@ -203,9 +206,9 @@ class ThemeDialog(QDialog):
         self.input_search.returnPressed.connect(self._search_github)
         search_row.addWidget(self.input_search)
 
-        btn_search = QPushButton("🔍 Search")
-        btn_search.clicked.connect(self._search_github)
-        search_row.addWidget(btn_search)
+        self.btn_search = QPushButton("🔍 Search")
+        self.btn_search.clicked.connect(self._search_github)
+        search_row.addWidget(self.btn_search)
         layout.addLayout(search_row)
 
         # Direct GitHub URL Installer
@@ -215,9 +218,9 @@ class ThemeDialog(QDialog):
         self.input_direct_url.setFont(QFont("Monospace", 8))
         direct_row.addWidget(self.input_direct_url)
 
-        btn_direct_install = QPushButton("📥 Install URL")
-        btn_direct_install.clicked.connect(self._install_direct_url)
-        direct_row.addWidget(btn_direct_install)
+        self.btn_direct_install = QPushButton("📥 Install URL")
+        self.btn_direct_install.clicked.connect(self._install_direct_url)
+        direct_row.addWidget(self.btn_direct_install)
         layout.addLayout(direct_row)
 
         # Results List
@@ -235,17 +238,52 @@ class ThemeDialog(QDialog):
         layout.addWidget(self.box_comm_info)
 
         # Install Action
-        btn_install = QPushButton("⬇️ Download & Install Theme from GitHub")
-        btn_install.setStyleSheet("font-weight: bold; padding: 6px;")
-        btn_install.clicked.connect(self._install_selected_community_theme)
-        layout.addWidget(btn_install)
+        self.btn_install = QPushButton("⬇️ Download & Install Theme from GitHub")
+        self.btn_install.setStyleSheet("font-weight: bold; padding: 6px;")
+        self.btn_install.clicked.connect(self._install_selected_community_theme)
+        layout.addWidget(self.btn_install)
 
         self._populate_community_catalog()
+
+    def _in_background(self, fn, done, busy_button=None):
+        """Kör ett nätanrop utanför GUI-tråden och kom tillbaka med svaret."""
+        if busy_button is not None:
+            busy_button.setEnabled(False)
+
+        def finish(result):
+            if busy_button is not None:
+                busy_button.setEnabled(True)
+            done(result)
+
+        def failed(err):
+            if busy_button is not None:
+                busy_button.setEnabled(True)
+            QMessageBox.warning(self, "Network error", str(err))
+
+        worker = BackgroundWorker(fn)
+        self._bg_workers.add(worker)
+
+        def on_done(result, w=worker):
+            self._bg_workers.discard(w)
+            finish(result)
+
+        def on_error(err, w=worker):
+            self._bg_workers.discard(w)
+            failed(err)
+
+        worker.finished.connect(on_done)
+        worker.error.connect(on_error)
+        threading.Thread(target=worker.run, daemon=True).start()
 
     def _populate_community_catalog(self, themes=None):
         self.list_community.clear()
         if themes is None:
-            themes = self.github.get_community_themes()
+            # Katalogen hämtas från GitHub; att göra det här på GUI-tråden
+            # blockerade dialogen i upp till åtta sekunder.
+            self.list_community.addItem("Loading community themes…")
+            self._in_background(self.github.get_community_themes,
+                                self._populate_community_catalog)
+            return
         
         for t in themes:
             name = t.get("name", t.get("id"))
@@ -261,8 +299,9 @@ class ThemeDialog(QDialog):
 
     def _search_github(self):
         query = self.input_search.text().strip()
-        results = self.github.search_github_themes(query)
-        self._populate_community_catalog(results)
+        self._in_background(lambda: self.github.search_github_themes(query),
+                            self._populate_community_catalog,
+                            busy_button=self.btn_search)
 
     def _on_community_selected(self, row):
         item = self.list_community.item(row)
@@ -286,32 +325,64 @@ class ThemeDialog(QDialog):
             QMessageBox.warning(self, "No URL", "This theme has no repository URL.")
             return
 
-        try:
-            target_dir = os.path.expanduser("~/.config/omaamp/themes")
-            res = self.github.install_theme_from_github(repo_url, target_dir)
+        if getattr(self, "_installing", False):
+            return
+        self._installing = True
+        name = t.get("name")
+
+        def installed(res):
+            self._installing = False
             self.theme_mgr.reload_themes()
             self.refresh_installed_list()
             if res.get("id"):
                 self.theme_mgr.set_theme(res["id"])
-            QMessageBox.information(self, "Installation Complete", f"Successfully installed '{t.get('name')}' from GitHub!")
-        except Exception as e:
-            QMessageBox.critical(self, "Install Error", f"Failed to install theme from GitHub:\n{e}")
+            QMessageBox.information(
+                self, "Installation Complete",
+                f"Successfully installed '{name}' from GitHub!")
+
+        def failed(err):
+            self._installing = False
+            QMessageBox.critical(self, "Install Error",
+                                 f"Failed to install theme from GitHub:\n{err}")
+
+        target_dir = os.path.expanduser("~/.config/omaamp/themes")
+        if self.btn_install is not None:
+            self.btn_install.setEnabled(False)
+        worker = BackgroundWorker(
+            lambda: self.github.install_theme_from_github(repo_url, target_dir))
+        self._bg_workers.add(worker)
+
+        def on_done(res, w=worker):
+            self._bg_workers.discard(w)
+            self.btn_install.setEnabled(True)
+            installed(res)
+
+        def on_error(err, w=worker):
+            self._bg_workers.discard(w)
+            self.btn_install.setEnabled(True)
+            failed(err)
+
+        worker.finished.connect(on_done)
+        worker.error.connect(on_error)
+        threading.Thread(target=worker.run, daemon=True).start()
 
     def _install_direct_url(self):
         url = self.input_direct_url.text().strip()
         if not url:
             QMessageBox.warning(self, "Invalid URL", "Please enter a valid GitHub URL.")
             return
-        try:
-            target_dir = os.path.expanduser("~/.config/omaamp/themes")
-            res = self.github.install_theme_from_github(url, target_dir)
+        def installed(res):
             self.theme_mgr.reload_themes()
             self.refresh_installed_list()
             if res.get("id"):
                 self.theme_mgr.set_theme(res["id"])
-            QMessageBox.information(self, "Installation Complete", f"Theme successfully installed and activated!")
-        except Exception as e:
-            QMessageBox.critical(self, "Install Error", f"Failed to install theme from URL:\n{e}")
+            QMessageBox.information(self, "Installation Complete",
+                                    "Theme successfully installed and activated!")
+
+        self._in_background(
+            lambda: self.github.install_theme_from_github(
+                url, os.path.expanduser("~/.config/omaamp/themes")),
+            installed, busy_button=self.btn_direct_install)
 
     # =========================================================================
     # TAB 3: VISUAL THEME STUDIO / CREATOR

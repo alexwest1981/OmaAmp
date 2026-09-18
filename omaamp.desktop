@@ -2,8 +2,8 @@
 Name=OmaAmp (Winamp)
 GenericName=Audio Player
 Comment=Classic Winamp-style modular MP3 & audio player with themes, EQ, and visualizer
-Exec=/home/alex/.local/bin/omaamp %F
-Icon=/home/alex/Projects/OmaAmp/icon.png
+Exec=omaamp %F
+Icon=omaamp
 Terminal=false
 Type=Application
 Categories=AudioVideo;Audio;Player;Qt;

@@ -15,7 +15,7 @@ from ui.playlist_window import PlaylistWindow
 from core.i18n import _, i18n
 
 class MainWindow(QWidget):
-    def __init__(self, audio_engine, theme_mgr, config_mgr, vis_gen=None):
+    def __init__(self, audio_engine, theme_mgr, config_mgr):
         super().__init__()
         self.audio = audio_engine
         self.theme_mgr = theme_mgr

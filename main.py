@@ -10,7 +10,6 @@ from PyQt6.QtCore import Qt
 from core.audio_engine import AudioEngine
 from core.theme_manager import ThemeManager
 from core.config import ConfigManager
-from core.visualizer_data import VisualizerGenerator
 from ui.main_window import MainWindow
 
 def main():
@@ -26,14 +25,13 @@ def main():
     theme_mgr.set_theme(saved_theme)
 
     audio_engine = AudioEngine()
-    vis_gen = VisualizerGenerator(num_bars=19)
 
     # If valid audio file paths passed on CLI, queue them
     valid_paths = [p for p in sys.argv[1:] if p and not p.startswith("%") and os.path.exists(p)]
     if valid_paths:
         audio_engine.add_files(valid_paths)
 
-    window = MainWindow(audio_engine, theme_mgr, config_mgr, vis_gen)
+    window = MainWindow(audio_engine, theme_mgr, config_mgr)
     window.show()
 
     exit_code = app.exec()

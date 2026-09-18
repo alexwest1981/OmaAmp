@@ -9,24 +9,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QUrl, pyqtSignal, QObject
 from PyQt6.QtGui import QFont, QDesktopServices, QIcon
 from core.i18n import _, i18n
-
-
-class BackgroundWorker(QObject):
-    finished = pyqtSignal(object)
-    error = pyqtSignal(str)
-
-    def __init__(self, target_fn, *args, **kwargs):
-        super().__init__()
-        self.target_fn = target_fn
-        self.args = args
-        self.kwargs = kwargs
-
-    def run(self):
-        try:
-            res = self.target_fn(*self.args, **self.kwargs)
-            self.finished.emit(res)
-        except Exception as e:
-            self.error.emit(str(e))
+from ui.workers import BackgroundWorker
 
 
 class RadioDialog(QDialog):

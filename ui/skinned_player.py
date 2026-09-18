@@ -27,17 +27,37 @@ class SkinnedPlayerWidget(QWidget):
         self.time_mode = "elapsed"  # "elapsed" | "remaining"
         self.scroll_pos = 0
 
-        # High-FPS update timer (50 FPS for smooth FFT and sliders)
+        # 50 FPS medan widgeten syns och spelaren är igång; marquee-timern
+        # behöver bara synlighet. Båda tickade förut dygnet runt.
         self.timer = QTimer(self)
         self.timer.setInterval(20)
         self.timer.timeout.connect(self._on_tick)
-        self.timer.start()
 
-        # Marquee scroll timer
         self.scroll_timer = QTimer(self)
         self.scroll_timer.setInterval(120)
         self.scroll_timer.timeout.connect(self._on_scroll)
-        self.scroll_timer.start()
+
+        self.audio.playback_state_changed.connect(self._sync_timers)
+        self._sync_timers(getattr(self.audio, "is_playing", False))
+
+    def _sync_timers(self, playing: bool) -> None:
+        if playing and self.isVisible():
+            self.timer.start()
+        else:
+            self.timer.stop()
+        if self.isVisible():
+            self.scroll_timer.start()
+        else:
+            self.scroll_timer.stop()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._sync_timers(getattr(self.audio, "is_playing", False))
+
+    def hideEvent(self, event):
+        super().hideEvent(event)
+        self.timer.stop()
+        self.scroll_timer.stop()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
