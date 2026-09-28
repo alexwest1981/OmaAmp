@@ -465,9 +465,12 @@ class AudioEngine(QObject):
 
     def _start_stream(self):
         self._stop_stream()
+        # Strömmen måste gå i materialets takt: 48 kHz-spår (Suno-WAV) i en 44,1 kHz-ström
+        # spelas 9 % långsammare och lägre. Live-strömmen dekodas alltid till 44,1 kHz.
+        rate = 44100 if self.is_live_stream else (self.sample_rate or 44100)
         try:
             self.stream = sd.OutputStream(
-                samplerate=44100,
+                samplerate=int(rate),
                 channels=2,
                 dtype='float32',
                 blocksize=1024,
